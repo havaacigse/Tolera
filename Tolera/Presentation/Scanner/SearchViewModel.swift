@@ -6,6 +6,7 @@ final class SearchViewModel {
     var isLoading = false
     var result: ProductCheckResult?
     var errorMessage: String?
+    var isProductNotFound = false
 
     private let productRepository: ProductRepository
     private let profileRepository: UserProfileRepository
@@ -28,6 +29,7 @@ final class SearchViewModel {
 
     func search() {
         errorMessage = nil
+        isProductNotFound = false
         result = nil
         isLoading = true
 
@@ -41,6 +43,8 @@ final class SearchViewModel {
                     userAllergens: userAllergens,
                     customTerms: customTerms
                 )
+            } catch ProductError.notFound {
+                isProductNotFound = true
             } catch let error as ProductError {
                 errorMessage = message(for: error)
             } catch {
@@ -53,7 +57,7 @@ final class SearchViewModel {
     private func message(for error: ProductError) -> String {
         switch error {
         case .notFound:
-            return "Ürün bulunamadı."
+            return "Bu ürün veritabanında bulunamadı."
         case .network:
             return "İnternet bağlantısı yok."
         case .unknown:

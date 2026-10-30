@@ -63,8 +63,9 @@ enum AllergenKeywords {
     ]
 
     /// "eser miktarda"/"may contain" bir BAŞLANGIÇ ifadesidir: bu ifadeden önceki
-    /// alerjenler gerçek içerik, sonrakiler eser miktar sayılır.
-    static let leadingTraceMarkers = ["eser miktar", "may contain"]
+    /// alerjenler gerçek içerik, sonrakiler eser miktar sayılır. "eser miktarda" önce
+    /// denenir ki "da" eki "sonrası" metinde sarkık kalmasın (temiz bir "neden" ifadesi için).
+    static let leadingTraceMarkers = ["eser miktarda", "eser miktar", "may contain"]
 
     /// Başlangıç ifadesi yoksa ve sadece "içerebilir"/"bulunabilir" fiili varsa devreye girer.
     static let trailingTriggerPhrases = ["içerebilir", "bulunabilir"]

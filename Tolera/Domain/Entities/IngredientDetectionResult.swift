@@ -9,4 +9,6 @@ struct IngredientDetectionResult {
     /// Metin Türkçe ya da İngilizce değilse (ör. Arapça, Rusça) true olur; bu durumda
     /// contains/mayContain boştur, metin analiz edilmemiştir.
     let isUnrecognizedLanguage: Bool
+    /// Her bulunan alerjen için onu tetikleyen metindeki ifade (ör. .gluten → "buğday unu").
+    let reasons: [Allergen: String]
 }

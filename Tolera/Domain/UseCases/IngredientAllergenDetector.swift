@@ -8,6 +8,8 @@ struct IngredientAllergenDetector {
     private struct PartDetection {
         let contains: Set<Allergen>
         let mayContain: Set<Allergen>
+        /// Her alerjen için onu tetikleyen metin parçası (ör. .gluten → "buğday unu").
+        let reasons: [Allergen: String]
     }
 
     /// Bir cümle parçasının başlangıç ifadesine göre ikiye bölünmüş hali
@@ -45,7 +47,7 @@ struct IngredientAllergenDetector {
         let normalizedText = normalize(text)
 
         guard isSupportedLanguage(normalizedText) else {
-            return IngredientDetectionResult(contains: [], mayContain: [], isUnrecognizedLanguage: true)
+            return IngredientDetectionResult(contains: [], mayContain: [], isUnrecognizedLanguage: true, reasons: [:])
         }
 
         let parts = splitIntoParts(normalizedText)
@@ -123,9 +125,19 @@ struct IngredientAllergenDetector {
     /// Bir parçayı temizleyip (istisnalar, özel ifadeler) içerik/eser miktar olarak
     /// sınıflandırır ve o sınıflandırmaya göre anahtar kelime eşleşmesi yapar.
     private func classifyAndMatch(part: String) -> PartDetection {
-        let (cleanedPart, forcedTrace) = applyExceptionsAndSpecialPhrases(to: part)
+        let (cleanedPart, forcedTrace, forcedTraceReasons) = applyExceptionsAndSpecialPhrases(to: part)
         let detection = classifyAndFindAllergens(in: cleanedPart)
-        return PartDetection(contains: detection.contains, mayContain: detection.mayContain.union(forcedTrace))
+
+        var reasons = detection.reasons
+        for (allergen, reason) in forcedTraceReasons where reasons[allergen] == nil {
+            reasons[allergen] = reason
+        }
+
+        return PartDetection(
+            contains: detection.contains,
+            mayContain: detection.mayContain.union(forcedTrace),
+            reasons: reasons
+        )
     }
 
     /// İstisnaları ve özel ifadeleri temizler ki aşağıdaki anahtar kelime araması
@@ -133,9 +145,10 @@ struct IngredientAllergenDetector {
     /// - Bitkisel sütler ("badem sütü" → "badem"): süt alerjeni değildir.
     /// - İstisna kelimeler ("eggplant", "kekik" vb.): başka bir anahtar kelimenin öneki.
     /// - "glutensiz yulaf/buğday": çapraz bulaşma riski olduğu için ayrıca işaretlenip
-    ///   (forcedTrace) metinden silinir ki aşağıda tekrar "içerik" olarak yakalanmasın.
+    ///   (forcedTrace, kendi ifadesi "neden" olarak saklanır) metinden silinir ki aşağıda
+    ///   tekrar "içerik" olarak yakalanmasın.
     /// - "gluten içermez/içermiyor": sadece kendisi silinir, başka gluten kaynağı etkilenmez.
-    private func applyExceptionsAndSpecialPhrases(to part: String) -> (cleaned: String, forcedTrace: Set<Allergen>) {
+    private func applyExceptionsAndSpecialPhrases(to part: String) -> (cleaned: String, forcedTrace: Set<Allergen>, forcedTraceReasons: [Allergen: String]) {
         var normalized = part
 
         for plantMilk in AllergenKeywords.plantMilks {
@@ -147,8 +160,10 @@ struct IngredientAllergenDetector {
         }
 
         var forcedTrace: Set<Allergen> = []
+        var forcedTraceReasons: [Allergen: String] = [:]
         for phrase in AllergenKeywords.glutenFreeCrossContaminationPhrases where TurkishWordMatcher.matchesWordStart(keyword: phrase, in: normalized) {
             forcedTrace.insert(.gluten)
+            forcedTraceReasons[.gluten] = phrase
         }
         for phrase in AllergenKeywords.glutenFreeCrossContaminationPhrases {
             normalized = normalized.replacingOccurrences(of: phrase, with: " ")
@@ -158,7 +173,7 @@ struct IngredientAllergenDetector {
             normalized = normalized.replacingOccurrences(of: phrase, with: " ")
         }
 
-        return (normalized, forcedTrace)
+        return (normalized, forcedTrace, forcedTraceReasons)
     }
 
     /// Temizlenmiş parçayı sınıflandırır: başlangıç ifadesi varsa öncesi/sonrasına göre,
@@ -168,27 +183,32 @@ struct IngredientAllergenDetector {
         switch classifyPartKind(part) {
         case let .leadingMarker(before, after):
             // "eser miktarda"/"may contain" bir BAŞLANGIÇ ifadesidir: öncesi contains, sonrası mayContain.
-            return PartDetection(contains: findAllergens(in: before), mayContain: findAllergens(in: after))
+            let containsAllergens = findAllergens(in: before)
+            let mayContainAllergens = findAllergens(in: after)
+            let reasons = reasons(forAllergensIn: before, allergens: containsAllergens)
+                .merging(reasons(forAllergensIn: after, allergens: mayContainAllergens)) { current, _ in current }
+            return PartDetection(contains: containsAllergens, mayContain: mayContainAllergens, reasons: reasons)
 
         case let .remainder(text):
             let allergens = findAllergens(in: text)
             let hasTrailingTrigger = AllergenKeywords.trailingTriggerPhrases.contains {
                 TurkishWordMatcher.matchesWordStart(keyword: $0, in: text)
             }
+            let reasons = reasons(forAllergensIn: text, allergens: allergens)
 
             guard hasTrailingTrigger, !allergens.isEmpty else {
                 // Fiil yok ya da hiç alerjen bulunamadı: varsayılan olarak içerik sayılır.
-                return PartDetection(contains: allergens, mayContain: [])
+                return PartDetection(contains: allergens, mayContain: [], reasons: reasons)
             }
 
             if hasUnaccountedWord(in: text) {
                 // Alerjen ya da izinli kelime olmayan bir kelime var: hangisi eser miktar
                 // belirsiz, temkinli ilke gereği hepsi içerik sayılır.
-                return PartDetection(contains: allergens, mayContain: [])
+                return PartDetection(contains: allergens, mayContain: [], reasons: reasons)
             }
 
             // Parça sadece alerjenlerden ve izinli bağlaç/kategori kelimelerinden oluşuyor: hepsi eser miktar.
-            return PartDetection(contains: [], mayContain: allergens)
+            return PartDetection(contains: [], mayContain: allergens, reasons: reasons)
         }
     }
 
@@ -256,6 +276,35 @@ struct IngredientAllergenDetector {
         return matched
     }
 
+    /// Verilen alerjenler için "neden" metnini bulur: metni virgülle ayrılmış öğelere böler,
+    /// her alerjeni tetikleyen öğeyi (ör. "buğday unu, şeker" → .gluten için "buğday unu")
+    /// döndürür. Virgülle ayrılmış bir öğe bulunamazsa (ör. tek öğelik parça) metnin
+    /// tamamı kırpılarak kullanılır.
+    private func reasons(forAllergensIn text: String, allergens: Set<Allergen>) -> [Allergen: String] {
+        guard !allergens.isEmpty else { return [:] }
+
+        let items = text.components(separatedBy: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        let fallback = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        var result: [Allergen: String] = [:]
+        for allergen in allergens {
+            result[allergen] = items.first { matchesKeyword(for: allergen, in: $0) } ?? fallback
+        }
+        return result
+    }
+
+    /// Bir metin parçasının belirli bir alerjenin anahtar kelimelerinden (Antep fıstığı
+    /// özel durumu dahil) birini içerip içermediğini kontrol eder.
+    private func matchesKeyword(for allergen: Allergen, in text: String) -> Bool {
+        if allergen == .nuts, AllergenKeywords.pistachioPhrases.contains(where: { TurkishWordMatcher.matchesWordStart(keyword: $0, in: text) }) {
+            return true
+        }
+        guard let keywords = AllergenKeywords.keywordsByAllergen[allergen] else { return false }
+        return keywords.contains { TurkishWordMatcher.matchesWordStart(keyword: $0, in: text) }
+    }
+
     /// Ham anahtar kelime araması: önce Antep fıstığı özel durumu (nuts, bare "fıstık"
     /// ile çakışmasın diye önce ayıklanıp silinir), sonra sözlükteki tüm anahtar kelimeler.
     private func findAllergens(in text: String) -> Set<Allergen> {
@@ -286,17 +335,22 @@ struct IngredientAllergenDetector {
 
     /// Tüm parçaların sonuçlarını birleştirir. Aynı alerjen hem içerikte hem eser
     /// miktarda geçerse içerik kazanır (CLAUDE.md: contains > mayContain > yok).
+    /// Bir alerjen birden fazla parçada geçiyorsa metinde önce rastlanan neden kullanılır.
     private func combine(_ detections: [PartDetection]) -> IngredientDetectionResult {
         var contains: Set<Allergen> = []
         var mayContain: Set<Allergen> = []
+        var reasons: [Allergen: String] = [:]
 
         for detection in detections {
             contains.formUnion(detection.contains)
             mayContain.formUnion(detection.mayContain)
+            for (allergen, reason) in detection.reasons where reasons[allergen] == nil {
+                reasons[allergen] = reason
+            }
         }
 
         mayContain.subtract(contains)
 
-        return IngredientDetectionResult(contains: contains, mayContain: mayContain, isUnrecognizedLanguage: false)
+        return IngredientDetectionResult(contains: contains, mayContain: mayContain, isUnrecognizedLanguage: false, reasons: reasons)
     }
 }

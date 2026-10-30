@@ -428,4 +428,24 @@ struct IngredientAllergenDetectorTests {
         #expect(result.contains.isEmpty)
         #expect(result.mayContain.isEmpty)
     }
+
+    // MARK: - "Neden?" (tetikleyen ifade)
+
+    @Test("gluten alerjeni için tetikleyen ifade (virgülle ayrılmış öğe) döner")
+    func glutenReasonReturnsTriggeringCommaItem() {
+        let result = detector.detect(in: "buğday unu, şeker")
+        #expect(result.reasons[.gluten] == "buğday unu")
+    }
+
+    @Test("eser miktar alerjeni için tetikleyen ifade döner")
+    func traceAllergenReasonReturnsTriggeringPhrase() {
+        let result = detector.detect(in: "eser miktarda fındık içerebilir")
+        #expect(result.reasons[.nuts] == "fındık içerebilir")
+    }
+
+    @Test("\"glutensiz yulaf\" çapraz bulaşma uyarısının tetikleyen ifadesi kendisidir")
+    func glutenFreeCrossContaminationReasonIsThePhraseItself() {
+        let result = detector.detect(in: "glutensiz yulaf unu")
+        #expect(result.reasons[.gluten] == "glutensiz yulaf")
+    }
 }

@@ -150,4 +150,26 @@ struct CheckProductUseCaseTests {
         #expect(result.status == .unknown)
         #expect(result.matchedAllergens.isEmpty)
     }
+
+    @Test func bosProfilSafeDonmezAyriBirBayrakOlur() {
+        let product = makeProduct(ingredientsText: "su, şeker")
+        let result = CheckProductUseCase().execute(product: product, userAllergens: [], customTerms: [])
+
+        #expect(result.status != .safe)
+        #expect(result.isProfileEmpty)
+    }
+
+    @Test func metindenGelenAlerjenIcinNedenTetikleyenIfadedir() {
+        let product = makeProduct(ingredientsText: "buğday unu, su")
+        let result = CheckProductUseCase().execute(product: product, userAllergens: [.gluten])
+
+        #expect(result.allergenReasons[.gluten] == "buğday unu")
+    }
+
+    @Test func offEtiketindenGelenAlerjenIcinNedenOFFEtiketidir() {
+        let product = makeProduct(allergens: [.milk], ingredientsText: "su, şeker")
+        let result = CheckProductUseCase().execute(product: product, userAllergens: [.milk])
+
+        #expect(result.allergenReasons[.milk] == "Open Food Facts etiketi")
+    }
 }

@@ -4,9 +4,11 @@ struct SearchView: View {
     @State private var viewModel: SearchViewModel
     @State private var isShowingScanner = false
     @State private var isShowingManualEntry = false
+    private let onGoToProfile: () -> Void
 
-    init(viewModel: SearchViewModel) {
+    init(viewModel: SearchViewModel, onGoToProfile: @escaping () -> Void) {
         _viewModel = State(initialValue: viewModel)
+        self.onGoToProfile = onGoToProfile
     }
 
     var body: some View {
@@ -20,6 +22,8 @@ struct SearchView: View {
                         ProgressView()
                             .frame(maxWidth: .infinity)
                             .padding(.top, 24)
+                    } else if viewModel.isProductNotFound {
+                        productNotFoundNotice
                     } else if let errorMessage = viewModel.errorMessage {
                         Text(errorMessage)
                             .foregroundStyle(.red)
@@ -97,12 +101,77 @@ struct SearchView: View {
 
     @ViewBuilder
     private func resultContent(for result: ProductCheckResult) -> some View {
-        VStack(alignment: .leading, spacing: 20) {
-            banner(for: result)
-            productHeader(for: result.product)
-            details(for: result)
-            disclaimerNote
+        if result.isProfileEmpty {
+            emptyProfileNotice
+        } else {
+            VStack(alignment: .leading, spacing: 20) {
+                banner(for: result)
+                productHeader(for: result.product)
+                details(for: result)
+                disclaimerNote
+            }
         }
+    }
+
+    private var emptyProfileNotice: some View {
+        VStack(spacing: 12) {
+            Text("🧑‍⚕️")
+                .font(.system(size: 40))
+            Text("Önce hassasiyetlerini seç")
+                .font(.title3.bold())
+                .multilineTextAlignment(.center)
+            Text("Hangi alerjenlere dikkat etmen gerektiğini bilmeden ürünleri senin için değerlendiremeyiz.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Button("Profile Git", action: onGoToProfile)
+                .buttonStyle(.borderedProminent)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+        .padding(.horizontal, 16)
+        .background(Color.secondary.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+
+    private var productNotFoundNotice: some View {
+        VStack(spacing: 14) {
+            Text("🔍")
+                .font(.system(size: 40))
+            Text("Bu ürün veritabanında bulunamadı.")
+                .font(.title3.bold())
+                .multilineTextAlignment(.center)
+
+            VStack(spacing: 10) {
+                Button("Tekrar Tara") {
+                    isShowingScanner = true
+                }
+                .buttonStyle(.borderedProminent)
+                .frame(maxWidth: .infinity)
+
+                Button("Barkodu Elle Gir") {
+                    withAnimation { isShowingManualEntry = true }
+                }
+                .buttonStyle(.bordered)
+                .frame(maxWidth: .infinity)
+
+                Link(destination: URL(string: "https://world.openfoodfacts.org")!) {
+                    Text("Ürünü Open Food Facts'e Ekle")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
+
+            Text("Yakında: içindekiler fotoğrafını çekerek kontrol edebileceksin.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+        .padding(.horizontal, 16)
+        .background(Color.secondary.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 
     private var disclaimerNote: some View {
@@ -184,17 +253,7 @@ struct SearchView: View {
                     .clipShape(Capsule())
             }
 
-            if !result.matchedAllergens.isEmpty {
-                allergenRow(title: "Eşleşen alerjenler", allergens: result.matchedAllergens)
-            }
-
-            if !result.matchedTraces.isEmpty {
-                allergenRow(title: "Eser miktar uyarıları", allergens: result.matchedTraces)
-            }
-
-            if !result.matchedCustomTerms.isEmpty {
-                customTermRow(title: "Eşleşen diğer hassasiyetler", terms: result.matchedCustomTerms)
-            }
+            whyExplanationSection(for: result)
 
             if let ingredients = result.product.ingredientsText, !ingredients.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
@@ -209,35 +268,53 @@ struct SearchView: View {
         }
     }
 
-    private func allergenRow(title: String, allergens: Set<Allergen>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.caption.bold())
-                .foregroundStyle(.secondary)
-            ForEach(allergens.sorted(by: { $0.displayName < $1.displayName })) { allergen in
-                Text("\(allergen.emoji) \(allergen.displayName)")
-                    .font(.caption)
+    @ViewBuilder
+    private func whyExplanationSection(for result: ProductCheckResult) -> some View {
+        let relevantAllergens = result.matchedAllergens.union(result.matchedTraces)
+            .sorted(by: { $0.displayName < $1.displayName })
+
+        if !relevantAllergens.isEmpty || !result.matchedCustomTerms.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Neden bu sonuç?")
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+
+                ForEach(relevantAllergens) { allergen in
+                    whyRow(
+                        icon: allergen.emoji,
+                        name: allergen.displayName,
+                        reason: result.allergenReasons[allergen] ?? ""
+                    )
+                }
+
+                ForEach(result.matchedCustomTerms.sorted(), id: \.self) { term in
+                    whyRow(icon: "🔸", name: term, reason: "eşleşen kelime")
+                }
             }
         }
     }
 
-    private func customTermRow(title: String, terms: [String]) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.caption.bold())
+    private func whyRow(icon: String, name: String, reason: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(icon)
+            Text(name)
+                .font(.caption)
+            Spacer()
+            Text(reason)
+                .font(.caption)
                 .foregroundStyle(.secondary)
-            ForEach(terms.sorted(), id: \.self) { term in
-                Text(term)
-                    .font(.caption)
-            }
+                .multilineTextAlignment(.trailing)
         }
     }
 }
 
 #Preview {
-    SearchView(viewModel: SearchViewModel(
-        productRepository: ProductRepositoryImpl(),
-        profileRepository: UserProfileRepositoryImpl(),
-        checkProductUseCase: CheckProductUseCase()
-    ))
+    SearchView(
+        viewModel: SearchViewModel(
+            productRepository: ProductRepositoryImpl(),
+            profileRepository: UserProfileRepositoryImpl(),
+            checkProductUseCase: CheckProductUseCase()
+        ),
+        onGoToProfile: {}
+    )
 }

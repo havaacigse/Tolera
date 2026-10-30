@@ -22,7 +22,25 @@ struct CheckProductUseCase {
                 matchedTraces: [],
                 detectedFromIngredients: [],
                 matchedCustomTerms: [],
-                isCosmeticNotSupported: true
+                isCosmeticNotSupported: true,
+                isProfileEmpty: false,
+                allergenReasons: [:]
+            )
+        }
+
+        // Kullanıcı hiçbir alerjen/özel terim seçmemişse analiz anlamsızdır; "safe"
+        // dönmek yanıltıcı olur, bu yüzden ayrı bir bayrakla işaretlenir.
+        guard !(userAllergens.isEmpty && customTerms.isEmpty) else {
+            return ProductCheckResult(
+                product: product,
+                status: .unknown,
+                matchedAllergens: [],
+                matchedTraces: [],
+                detectedFromIngredients: [],
+                matchedCustomTerms: [],
+                isCosmeticNotSupported: false,
+                isProfileEmpty: true,
+                allergenReasons: [:]
             )
         }
 
@@ -38,7 +56,9 @@ struct CheckProductUseCase {
                 matchedTraces: [],
                 detectedFromIngredients: [],
                 matchedCustomTerms: [],
-                isCosmeticNotSupported: false
+                isCosmeticNotSupported: false,
+                isProfileEmpty: false,
+                allergenReasons: [:]
             )
         }
 
@@ -71,6 +91,13 @@ struct CheckProductUseCase {
             status = .safe
         }
 
+        // "Neden bu sonuç?" için: metinden gelen tetikleyen ifade varsa onu kullan,
+        // yoksa bu alerjen OFF etiketinden gelmiş demektir.
+        var allergenReasons: [Allergen: String] = [:]
+        for allergen in matchedAllergens.union(matchedTraces) {
+            allergenReasons[allergen] = detection.reasons[allergen] ?? "Open Food Facts etiketi"
+        }
+
         return ProductCheckResult(
             product: product,
             status: status,
@@ -78,7 +105,9 @@ struct CheckProductUseCase {
             matchedTraces: matchedTraces,
             detectedFromIngredients: detectedFromIngredients,
             matchedCustomTerms: matchedCustomTerms,
-            isCosmeticNotSupported: false
+            isCosmeticNotSupported: false,
+            isProfileEmpty: false,
+            allergenReasons: allergenReasons
         )
     }
 }
