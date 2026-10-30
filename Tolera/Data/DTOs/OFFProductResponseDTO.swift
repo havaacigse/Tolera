@@ -44,8 +44,8 @@ struct OFFProductDTO: Decodable {
             return nil
         }
 
-        let ingredients = preferred(ingredientsTextTr, ingredientsText)?
-            .replacingOccurrences(of: "_", with: "")
+        let ingredients = preferred(ingredientsTextTr, ingredientsText)
+            .map(IngredientsTextCleaner.clean)
 
         let allergens = Set((allergensTags ?? []).compactMap(Allergen.from(offTag:)))
         let traces = Set((tracesTags ?? []).compactMap(Allergen.from(offTag:)))

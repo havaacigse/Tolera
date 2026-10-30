@@ -1,0 +1,608 @@
+[
+  {
+    "barcode": "8690504135913",
+    "name": "Ülker Çikolata (Bisküvi)",
+    "ingredientsText": "Şeker, Buğday unu, bitkisel yağlar (palm, tam hidrojenize palm, palm çekirdeği) fındık püresi, yağı azaltılmış kakao tozu, kabartıcılar (sodyum bikarbonat, amonyum bikarbonat), tuz, emülgatörler (soya lesitini), aroma vericiler.",
+    "expectedContains": [
+      "gluten",
+      "nuts",
+      "soybeans"
+    ],
+    "expectedMayContain": [],
+    "notes": "bisküvi",
+    "annotated": true,
+    "offAllergens": [
+      "gluten",
+      "milk"
+    ],
+    "offTraces": []
+  },
+  {
+    "barcode": "8690526643298",
+    "name": "Eti Benimo Lokmalık Çikolatalı Bisküvi 80 G",
+    "ingredientsText": "*Buğday Unu* (Gluten içerir), Şeker, Bitkisel Yağ (Palm, Ayçiçek, Pamuk, Kanola), İnvert Şeker Şurubu, Yağı Azaltılmış Kakao Tozu, Kabartıcılar (Sodyum Bikarbonat, Amonyum Bikarbonat), Tuz, Aroma Vericiler, Emülgatör (Soya Lesitini).",
+    "expectedContains": [
+      "gluten",
+      "soybeans"
+    ],
+    "expectedMayContain": [],
+    "notes": "bisküvi",
+    "annotated": true,
+    "offAllergens": [
+      "eggs",
+      "gluten",
+      "milk",
+      "sulphites"
+    ],
+    "offTraces": [
+      "nuts",
+      "sesame",
+      "soybeans"
+    ]
+  },
+  {
+    "barcode": "8690504017301",
+    "name": "Çubuk kraker 40 g",
+    "ingredientsText": "Buğday unu, bitkisel yağ (palm), tuz (%3,5), emülgatörler (soya lesitini, yağ asitlerinin mono ve digliseritleri), kabartıcılar (sodyum bikarbonat, amonyum bikarbonat), maya.",
+    "expectedContains": [
+      "gluten",
+      "soybeans"
+    ],
+    "expectedMayContain": [],
+    "notes": "bisküvi",
+    "annotated": true,
+    "offAllergens": [
+      "gluten",
+      "sesame",
+      "soybeans"
+    ],
+    "offTraces": []
+  },
+  {
+    "barcode": "8683347033546",
+    "name": "Glutensiz Tahinli Kraker",
+    "ingredientsText": "Glutensiz yulaf unu (%20,3), nişasta, su, hurma suyu, tahin (susam) (%9), zeytinyağı, tuz, kabartıcı (sodyum bikarbonat).",
+    "expectedContains": [
+      "sesame"
+    ],
+    "expectedMayContain": [
+      "gluten"
+    ],
+    "notes": "glutensiz beyanı doğrulanamaz, dikkat",
+    "annotated": true,
+    "offAllergens": [
+      "nuts",
+      "peanuts",
+      "sesame"
+    ],
+    "offTraces": [
+      "nuts",
+      "peanuts"
+    ]
+  },
+  {
+    "barcode": "8690533024035",
+    "name": "Eti Balık Kraker 40 G",
+    "ingredientsText": "*Buğday Unu* (Gluten içerir), Bitkisel Yağ (Palm, Ayçiçek, Pamuk, Kanola), Şeker, Kabartıcılar (Sodyum Bikarbonat, Amonyum Bikarbonat), Tuz.",
+    "expectedContains": [
+      "gluten"
+    ],
+    "expectedMayContain": [],
+    "notes": "bisküvi. Ürün adında 'balık' geçiyor ama içerikte balık yok (şekli balık).",
+    "annotated": true,
+    "offAllergens": [
+      "gluten",
+      "sulphites"
+    ],
+    "offTraces": [
+      "eggs",
+      "milk",
+      "mustard",
+      "sesame"
+    ]
+  },
+  {
+    "barcode": "8690533034010",
+    "name": "Crax Sade Çubuk Kraker",
+    "ingredientsText": "_Buğday_ unu (_gluten_ içerir), bitkisel yağlar (palm, ayçiçek, pamuk, kanola), tuz, invert şeker şurubu, kabartıcılar (sodyum bikarbonat, amonyum bikarbonat), emülgatör (_soya_ lesitini).",
+    "expectedContains": [
+      "gluten",
+      "soybeans"
+    ],
+    "expectedMayContain": [],
+    "notes": "bisküvi",
+    "annotated": true,
+    "offAllergens": [
+      "gluten",
+      "sulphites"
+    ],
+    "offTraces": [
+      "celery",
+      "eggs",
+      "gluten",
+      "milk",
+      "sesame"
+    ]
+  },
+  {
+    "barcode": "8690526067438",
+    "name": "Eti Maximus Loading Bar 50 G",
+    "ingredientsText": "Şeker, invert şeker şurubu, *yer fıstığı*, tam yağlı *süt tozu*, bitkisel yağ (palm, tam hidrojenize palm), kakao kitlesi, kakao yağı, emülgatörler (soya lesitini), tuz, aroma verici.",
+    "expectedContains": [
+      "peanuts",
+      "milk",
+      "soybeans"
+    ],
+    "expectedMayContain": [],
+    "notes": "çikolata",
+    "annotated": true,
+    "offAllergens": [
+      "eggs",
+      "gluten",
+      "milk",
+      "peanuts"
+    ],
+    "offTraces": [
+      "nuts",
+      "soybeans"
+    ]
+  },
+  {
+    "barcode": "69054709",
+    "name": "Karam Bitter Çikolata",
+    "ingredientsText": "Kakao kitlesi, şeker, yağı azaltılmış kakao tozu, kakao yağı, tereyağı (_süt ürünü_), emülgatör (ayçiçek lesitini), vanilya aroması.",
+    "expectedContains": [
+      "milk"
+    ],
+    "expectedMayContain": [],
+    "notes": "çikolata. Ayçiçek lesitini soya değil.",
+    "annotated": true,
+    "offAllergens": [
+      "gluten",
+      "milk",
+      "nuts",
+      "peanuts"
+    ],
+    "offTraces": [
+      "gluten",
+      "nuts",
+      "peanuts",
+      "soybeans"
+    ]
+  },
+  {
+    "barcode": "8695077086648",
+    "name": "Bitter Çikolata %85 Kakao",
+    "ingredientsText": "Kakao kitlesi, kakao tozu, kakao yağı, şeker, emulgator (ayçiçek lesitini). Bitter çikolata.",
+    "expectedContains": [],
+    "expectedMayContain": [],
+    "notes": "çikolata. Alerjensiz.",
+    "annotated": true,
+    "offAllergens": [
+      "gluten",
+      "nuts",
+      "peanuts"
+    ],
+    "offTraces": [
+      "gluten",
+      "milk",
+      "nuts",
+      "peanuts",
+      "soybeans"
+    ]
+  },
+  {
+    "barcode": "8695077071576",
+    "name": "Berries Yumuşak Şeker",
+    "ingredientsText": "JELLY PARTY BÖĞÜRTLEN & AHUDUDU AROMALI YUMUŞAK ŞEKER \r\nTR içindekiler: Şeker, Glukoz Şurubu, Nişasta, Jelatin, Asitlendirici (Sitrik Asit), Aroma Vericiler, Renklendiriciler.",
+    "expectedContains": [],
+    "expectedMayContain": [],
+    "notes": "şekerleme. Alerjensiz. Jelatin alerjen değil. Nişasta kaynağı belirtilmemiş.",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8683417000126",
+    "name": "SARELLE Fındık Kreması",
+    "ingredientsText": "Şeker, Bitkisel Yağ (Pamuk, Ayçiçek), Fındık (%13), Yağsız Süt Tozu, Yağı Azaltılmış Kakao Tozu (%5), Emülgatör (Soya Lesitini, E476), Aroma Verici.",
+    "expectedContains": [
+      "nuts",
+      "milk",
+      "soybeans"
+    ],
+    "expectedMayContain": [],
+    "notes": "çikolata",
+    "annotated": true,
+    "offAllergens": [
+      "milk",
+      "nuts"
+    ],
+    "offTraces": []
+  },
+  {
+    "barcode": "8690614012425",
+    "name": "Tam Yağlı Taze Süzme Peynir",
+    "ingredientsText": "Pastörize edilmiş İnek sütü (Laktoz İçerir), Stabilizör (Kalsiyum Klorür), Tuz (NaCl), Maya.",
+    "expectedContains": [
+      "milk"
+    ],
+    "expectedMayContain": [],
+    "notes": "süt ürünü. 'İnek sütü' büyük İ ile başlıyor, Türkçe harf testi.",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8695077022332",
+    "name": "%1,5 yarım yağlı Süt",
+    "ingredientsText": "Yarım yağlı inek sütü. Laktoz içerir. 100 ml'de en az 1,5 g süt yağı içerir.",
+    "expectedContains": [
+      "milk"
+    ],
+    "expectedMayContain": [],
+    "notes": "süt ürünü. 'Laktoz içerir' cümlesi 'içerebilir' ile karıştırılmamalı.",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8695077007780",
+    "name": "Kaymak",
+    "ingredientsText": "Pastörize inek sütü kreması (süt ürünü), şeker (%0,08).",
+    "expectedContains": [
+      "milk"
+    ],
+    "expectedMayContain": [],
+    "notes": "süt ürünü",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8699182522404",
+    "name": "Organik Yumurta",
+    "ingredientsText": "_Yumurta_",
+    "expectedContains": [
+      "eggs"
+    ],
+    "expectedMayContain": [],
+    "notes": "yumurta",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8690504025207",
+    "name": "Bitter Çikolata",
+    "ingredientsText": "TR Bitter Çikolata, Içindekiler: Kakao kitlesi, şeker, kakao yağı, kakao tozu, peyniraltı suyu tozu (süt), emülgatör (soya lesitini)",
+    "expectedContains": [
+      "milk",
+      "soybeans"
+    ],
+    "expectedMayContain": [],
+    "notes": "çikolata. 'peyniraltı' bitişik yazılmış.",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "80785545",
+    "name": "Vivident Sakız",
+    "ingredientsText": "tatlandiricilar eritritol, mannitol maltitoller sorbitol, asp sukraloz, asesolfam-k ( 60 sakarin), aroma vericiler, nem tutucu (gliserol), jelatinlestirici (gam arabik), emulgator (soya lesitini), antioksidan (bht)",
+    "expectedContains": [
+      "soybeans"
+    ],
+    "expectedMayContain": [],
+    "notes": "sakız. 'maltitoller' gluten DEĞİL (malt yanlış pozitif testi).",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8690504012139",
+    "name": "Hanımeller",
+    "ingredientsText": "Buğday unu, şeker, bitkisel yağlar (palm, palm çekirdeği), invert şeker şurubu, yağı azaltılmış kakao tozu (%1,7), peyniraltı suyu tozu (süt), kabartıcılar (amonyum hidrojen karbonat, sodyum hidrojen karbonat, disodyum difosfat), tuz, yağsız süttozu, tam yağlı süttozu, emülgatörler (soya lesitini, poligliserol, polirisinoleat), aroma vericiler, yumurta, fındık,",
+    "expectedContains": [
+      "gluten",
+      "milk",
+      "soybeans",
+      "eggs",
+      "nuts"
+    ],
+    "expectedMayContain": [],
+    "notes": "metin eksik, değerlendirme dışı",
+    "annotated": false,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8691707088068",
+    "name": "Zeytin ve Kekikli Kraker",
+    "ingredientsText": "_Buğday_ unu, bitkisel yağ (palm), tuz, glukoz-fruktoz şurubu, kabartıcılar (sodyum bikarbonat, amonyum bikarbonat), zeytin (%2), kekik (%1), emülgatör (_soya_ lesitini).",
+    "expectedContains": [
+      "gluten",
+      "soybeans"
+    ],
+    "expectedMayContain": [],
+    "notes": "bisküvi",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8681185086090",
+    "name": "Hindistan Cevizli ve Kakaolu Yüksek Protein Bar",
+    "ingredientsText": "_Süt_ proteinleri konsantresi, hurma, hurma suyu, kakao kitlesi %8,3 (kakao yağı, kakao tozu), hindistan cevizi (%5), deniz tuzu.",
+    "expectedContains": [
+      "milk"
+    ],
+    "expectedMayContain": [],
+    "notes": "bar. Hindistan cevizi sert kabuklu yemiş DEĞİL.",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8690698511661",
+    "name": "Tost Ekmeği",
+    "ingredientsText": "Buğday unu(gluten), içme suyu, maya, bitkisel yağ (ayçiçek), tuz, sirke, emülgator(yağ asitleri mono ve digliseritleri)",
+    "expectedContains": [
+      "gluten"
+    ],
+    "expectedMayContain": [],
+    "notes": "ekmek",
+    "annotated": true,
+    "offAllergens": [
+      "gluten",
+      "milk"
+    ],
+    "offTraces": [
+      "gluten"
+    ]
+  },
+  {
+    "barcode": "8690777564007",
+    "name": "Delikatessen Sauerkonserven (Bamya Turşusu)",
+    "ingredientsText": "Taze bamya, su, domates, tuz, asitlik düzenleyici (E330),",
+    "expectedContains": [],
+    "expectedMayContain": [],
+    "notes": "turşu. Alerjensiz. E330 sülfit değil.",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8690559025160",
+    "name": "Annemin Mutfağı Kuru Patlıcan ve Biber Dolma 200 G",
+    "ingredientsText": "Patlıcan dolma (%60) (Bulgur, kuru patlıcan (%25), soğan, ayçiçek yağı, su, salça, limon suyu, tuz, şeker, sarımsak, baharat), Biber dolma (%40) (Pirinç, kuru biber (%25), soğan, ayçiçek yağı, su, salça, limon suyu, tuz, şeker, sarımsak, baharat).",
+    "expectedContains": [
+      "gluten"
+    ],
+    "expectedMayContain": [],
+    "notes": "hazır yemek. Bulgur buğdaydan yapılır. 'Baharat' içeriği belirtilmemiş (kereviz/hardal olabilir ama metinde yok).",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8695077021120",
+    "name": "Fındık Ezmesi",
+    "ingredientsText": "Fındık , şeker",
+    "expectedContains": [
+      "nuts"
+    ],
+    "expectedMayContain": [],
+    "notes": "ezme. Düzensiz boşluk testi.",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8680751007439",
+    "name": "Migros Kakaolu Fındık Kreması",
+    "ingredientsText": "MIGROS KAKAOLU FINDIK KREMASI Ojidekiler Beyaz toz şeker, bitkisel yağ (pamuk, ayciçek), findik (%13) yagsiz süt tozu, kakao (%4), emulgatör (soya lesitini), tuz, aroma verici vanilin",
+    "expectedContains": [
+      "nuts",
+      "milk",
+      "soybeans"
+    ],
+    "expectedMayContain": [],
+    "notes": "krema. ZOR VAKA: OCR hatalı metin, içerikte 'findik' (ı yerine i) yazılmış. Başlıktaki 'FINDIK' büyük harf ve tr_TR ile 'fındık' olur.",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8690526039503",
+    "name": "Eti Lifalif İnce Öğütülmüş Yulaf Ezmesi 350 G",
+    "ingredientsText": "*Yulaf ezmesi* (gluten içerir).",
+    "expectedContains": [
+      "gluten"
+    ],
+    "expectedMayContain": [],
+    "notes": "kahvaltılık",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8690504020639",
+    "name": "Ekstra Bitter Çikolatalı Gofret",
+    "ingredientsText": "Şeker, bitkisel yağlar (palm), kakao kitlesi, _buğday_ unu (_gluten_), yağsız _süt_ tozu, emülgatörler (_soya_ lesitini), tuz, kabartıcı (sodyum bikarbonat), aroma verici.",
+    "expectedContains": [
+      "gluten",
+      "milk",
+      "soybeans"
+    ],
+    "expectedMayContain": [],
+    "notes": "gofret",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8690632056753",
+    "name": "Classic Çıtır Sütlü Çikolatalı Gofret",
+    "ingredientsText": "Sütlü çikolata %36 [şeker, kakao kitlesi, kakao yağı, yağsız _süt_ tozu, peynir altı suyu tozu, emülgatör (_soya_ lesitini)], _buğday_ unu, bitkisel yağ (palm).",
+    "expectedContains": [
+      "milk",
+      "soybeans",
+      "gluten"
+    ],
+    "expectedMayContain": [],
+    "notes": "gofret",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8690787171066",
+    "name": "İşlenmiş Yer Fıstığı",
+    "ingredientsText": "_Yer fıstığı_, bitkisel yağ (pamuk), tuz.",
+    "expectedContains": [
+      "peanuts"
+    ],
+    "expectedMayContain": [],
+    "notes": "kuruyemiş",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8695077069542",
+    "name": "Kızartılmış Kaju Fıstığı",
+    "ingredientsText": "_Kaju fıstığı_, bitkisel yağ, tuz.",
+    "expectedContains": [
+      "nuts"
+    ],
+    "expectedMayContain": [],
+    "notes": "kuruyemiş. Kaju sert kabuklu yemiş, yer fıstığı DEĞİL.",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8697403891674",
+    "name": "Smoked Chicken",
+    "ingredientsText": "Piliç eti, Patates nişastası, Su, Baharat karışımı, Tuz, Stabilizör (Sodyum polifosfat), Koruyucu (Sodyum nitrit).",
+    "expectedContains": [],
+    "expectedMayContain": [],
+    "notes": "şarküteri. Metne göre alerjensiz. 'Baharat karışımı' içeriği belirtilmemiş.",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8690565022054",
+    "name": "Pınar Kido Süt 180 Çilek",
+    "ingredientsText": "Pastörize inek sütü (1,3% yağlı), şeker, çilek püresi (1,5%), kıvam arttırıcı (karragenan), aroma verici.",
+    "expectedContains": [
+      "milk"
+    ],
+    "expectedMayContain": [],
+    "notes": "içecek",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8682059395034",
+    "name": "Su",
+    "ingredientsText": "Doğal su içerisinde sodyum, kalsiyum ve magnezyum bulunur.",
+    "expectedContains": [],
+    "expectedMayContain": [],
+    "notes": "içecek. Alerjensiz.",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8699270017621",
+    "name": "Tambol Bademli Sütlü Çikolata",
+    "ingredientsText": "Sütlü çikolata [Şeker, kakao yağı&quot;, tam yağlı süt tozu, kakao kitlesi*, yağsız süt tozu, badem (%8), emülgatör (soya lesitini)]",
+    "expectedContains": [
+      "milk",
+      "nuts",
+      "soybeans"
+    ],
+    "expectedMayContain": [],
+    "notes": "çikolata",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "2000000028978",
+    "name": "Doğadan Nane-Limon",
+    "ingredientsText": "Kıvırcık Nane %25.8, Limon Otu, Bamya Çiçeği, Limon Kabuğu %14, Mine Çiçeği, Aroma Verici, Hindiba",
+    "expectedContains": [],
+    "expectedMayContain": [],
+    "notes": "bitki çayı. Alerjensiz. '%25.8' içindeki nokta cümle bölmeyi bozmamalı.",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8695077054906",
+    "name": "Hamur Kabartma Tozu",
+    "ingredientsText": "Nişasta, kabartıcılar (sodyum asit pirofosfat, sodyum bikarbonat).",
+    "expectedContains": [],
+    "expectedMayContain": [],
+    "notes": "kabartma tozu. Metne göre alerjensiz. Nişasta kaynağı belirtilmemiş.",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8410066134878",
+    "name": "Heinz Hardal 445 G",
+    "ingredientsText": "Su, hardal tohumu, sirke, malt sirkesi, tuz, şeker, baharatlar, bal, doğal aroma verici, stabilizör (ksantan gam).",
+    "expectedContains": [
+      "mustard",
+      "gluten"
+    ],
+    "expectedMayContain": [],
+    "notes": "sos. BELİRSİZ: malt sirkesi arpadan yapılır, mevzuatta beyan edilir; gluten miktarı çok düşüktür.",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8696362500368",
+    "name": "Heinz Acılı Mayonez 405 G",
+    "ingredientsText": "Ayçiçek yağı, su, sirke, *pastörize yumurta sarısı* (%5.2), şeker, acı kırmızı biber (%1.8), tuz, nişasta, baharatlar.",
+    "expectedContains": [
+      "eggs"
+    ],
+    "expectedMayContain": [],
+    "notes": "sos",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8695077127112",
+    "name": "Bal & Hardal Aromalı Mısır Cipsi",
+    "ingredientsText": "Mısır, bitkisel yağ (değişen miktarlarda mısır, palm olein yağı), bal ve hardal aromalı çeşni (%7,5) (şeker, tuz, hardal unu, baharat, asitlik düzenleyici).",
+    "expectedContains": [
+      "mustard"
+    ],
+    "expectedMayContain": [],
+    "notes": "cips. 'hardal aromalı' ve 'hardal unu' ikisi de geçiyor; hardal unu gerçek içerik.",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  },
+  {
+    "barcode": "8693891402057",
+    "name": "Doğal Siyah Zeytin",
+    "ingredientsText": "Siyah Zeytin, Tuz, Mısırözü Yağı, Koruyucu (Potasyum Sorbat (E202) Sorbik Asit (E200)) Sertleştirici (Kalsiyum Klörür (E509))",
+    "expectedContains": [],
+    "expectedMayContain": [],
+    "notes": "zeytin. Alerjensiz. E200/E202 sülfit değil.",
+    "annotated": true,
+    "offAllergens": [],
+    "offTraces": []
+  }
+]

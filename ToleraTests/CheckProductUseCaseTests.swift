@@ -5,7 +5,8 @@ struct CheckProductUseCaseTests {
     private func makeProduct(
         allergens: Set<Allergen> = [],
         traces: Set<Allergen> = [],
-        ingredientsText: String? = "su, şeker"
+        ingredientsText: String? = "su, şeker",
+        type: ProductType = .food
     ) -> Product {
         Product(
             barcode: "0000000000000",
@@ -16,7 +17,7 @@ struct CheckProductUseCaseTests {
             allergens: allergens,
             traces: traces,
             categories: [],
-            type: .food
+            type: type
         )
     }
 
@@ -114,5 +115,28 @@ struct CheckProductUseCaseTests {
 
         #expect(result.status == .unknown)
         #expect(result.matchedCustomTerms.isEmpty)
+    }
+
+    @Test func tarcinUrunuGlutenEserMiktarCautionOlmaliUnsafeOlmamali() {
+        let cinnamonText = "Öğütülmüş Tarçın. Eser miktarda gluten, yumurta, soya, susam, süt ürünleri, kereviz, badem, fıstık içerebilir."
+        let product = makeProduct(allergens: [.gluten], ingredientsText: cinnamonText)
+        let result = CheckProductUseCase().execute(product: product, userAllergens: [.gluten])
+
+        #expect(result.status == .caution)
+    }
+
+    @Test func kozmetikUrunUnknownDonerVeAlerjenAnaliziYapilmaz() {
+        let product = makeProduct(
+            allergens: [.milk],
+            traces: [.nuts],
+            ingredientsText: "süt, buğday unu",
+            type: .cosmetic
+        )
+        let result = CheckProductUseCase().execute(product: product, userAllergens: [.milk, .gluten, .nuts])
+
+        #expect(result.status == .unknown)
+        #expect(result.matchedAllergens.isEmpty)
+        #expect(result.matchedTraces.isEmpty)
+        #expect(result.isCosmeticNotSupported)
     }
 }

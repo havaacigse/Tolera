@@ -13,12 +13,31 @@ struct CheckProductUseCase {
     }
 
     func execute(product: Product, userAllergens: Set<Allergen>, customTerms: [String] = []) -> ProductCheckResult {
-        let detectedFromIngredients = detector.detect(in: product.ingredientsText ?? "")
-            .subtracting(product.allergens)
-        let allAllergens = product.allergens.union(detectedFromIngredients)
+        // Kozmetik ürünler için alerjen analizi şimdilik desteklenmiyor (INCI listeleri ayrı bir iş).
+        guard product.type != .cosmetic else {
+            return ProductCheckResult(
+                product: product,
+                status: .unknown,
+                matchedAllergens: [],
+                matchedTraces: [],
+                detectedFromIngredients: [],
+                matchedCustomTerms: [],
+                isCosmeticNotSupported: true
+            )
+        }
 
-        let matchedAllergens = allAllergens.intersection(userAllergens)
-        let matchedTraces = product.traces.intersection(userAllergens)
+        let detection = detector.detect(in: product.ingredientsText ?? "")
+        let textMentionedAllergens = detection.contains.union(detection.mayContain)
+        let detectedFromIngredients = textMentionedAllergens.subtracting(product.allergens)
+
+        // Metinde (içerik ya da eser miktar olarak) hiç geçmeyen OFF etiketleri eklenir;
+        // metinde eser miktar olarak geçen bir alerjen için metin önceliklidir.
+        let offOnlyAllergens = product.allergens.subtracting(textMentionedAllergens)
+        let allContains = detection.contains.union(offOnlyAllergens)
+        let allTraces = product.traces.union(detection.mayContain)
+
+        let matchedAllergens = allContains.intersection(userAllergens)
+        let matchedTraces = allTraces.intersection(userAllergens)
             .subtracting(matchedAllergens)
         let matchedCustomTerms = customTermDetector.detect(customTerms: customTerms, in: product.ingredientsText ?? "")
 
@@ -43,7 +62,8 @@ struct CheckProductUseCase {
             matchedAllergens: matchedAllergens,
             matchedTraces: matchedTraces,
             detectedFromIngredients: detectedFromIngredients,
-            matchedCustomTerms: matchedCustomTerms
+            matchedCustomTerms: matchedCustomTerms,
+            isCosmeticNotSupported: false
         )
     }
 }

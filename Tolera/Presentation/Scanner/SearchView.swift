@@ -122,6 +122,10 @@ struct SearchView: View {
     }
 
     private func bannerInfo(for result: ProductCheckResult) -> (emoji: String, message: String, color: Color) {
+        if result.isCosmeticNotSupported {
+            return ("🧴", "Bu bir kozmetik ürün. Kozmetik ürün kontrolü yakında eklenecek.", .gray)
+        }
+
         switch result.status {
         case .unsafe:
             let names = (result.matchedAllergens.map(\.displayName) + result.matchedCustomTerms)
