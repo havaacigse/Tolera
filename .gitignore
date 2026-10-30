@@ -1,0 +1,15 @@
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+.build/
+*.moved-aside
+*.xcscmblueprint
+
+# macOS
+.DS_Store
+
+# Claude
+.claude/
+CLAUDE.md
