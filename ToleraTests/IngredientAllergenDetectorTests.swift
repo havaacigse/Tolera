@@ -270,4 +270,162 @@ struct IngredientAllergenDetectorTests {
         #expect(result.contains.isEmpty)
         #expect(result.mayContain.isEmpty)
     }
+
+    // MARK: - Noktasız eser miktar cümleleri
+
+    @Test("Alerjen olmayan içerik (şeker) varsa belirsizdir, hepsi contains sayılır")
+    func ambiguousTraceSentenceWithFillerIngredientIsAllContains() {
+        let result = detector.detect(in: "şeker, buğday unu, fındık içerebilir")
+        #expect(result.contains == [.gluten, .nuts])
+        #expect(result.mayContain.isEmpty)
+    }
+
+    @Test("\"eser miktarda\" başlangıç ifadesinden önceki contains, sonraki mayContain")
+    func leadingTraceMarkerSplitsBeforeAndAfter() {
+        let result = detector.detect(in: "şeker, buğday unu. eser miktarda fındık içerebilir")
+        #expect(result.contains == [.gluten])
+        #expect(result.mayContain == [.nuts])
+    }
+
+    @Test("Beyaz listede olmayan bir kelime (kakao) varsa belirsizdir, hepsi contains sayılır")
+    func unknownWordOutsideWhitelistMakesSentenceAmbiguous() {
+        let result = detector.detect(in: "kakao, fındık içerebilir")
+        #expect(result.contains == [.nuts])
+        #expect(result.mayContain.isEmpty)
+    }
+
+    @Test("Sadece alerjenler ve izinli bağlaç kelimeleri varsa hepsi mayContain sayılır")
+    func onlyAllergensAndAllowedConnectorWordsIsAllMayContain() {
+        let result = detector.detect(in: "Bu ürün fındık, süt ve soya içerebilir.")
+        #expect(result.contains.isEmpty)
+        #expect(result.mayContain == [.nuts, .milk, .soybeans])
+    }
+
+    @Test("Parça sadece alerjenlerden oluşuyorsa hepsi mayContain sayılır")
+    func partConsistingOnlyOfAllergensIsAllMayContain() {
+        let result = detector.detect(in: "fındık ve süt içerebilir.")
+        #expect(result.contains.isEmpty)
+        #expect(result.mayContain == [.nuts, .milk])
+    }
+
+    // MARK: - Sık görülen etiket ifadeleri
+
+    @Test("\"Süt ürünleri içerebilir.\" → mayContain [milk]")
+    func dairyProductsPhraseDetectsMilkAsTrace() {
+        let result = detector.detect(in: "Süt ürünleri içerebilir.")
+        #expect(result.contains.isEmpty)
+        #expect(result.mayContain == [.milk])
+    }
+
+    @Test("\"Yer fıstığı içerebilir.\" → mayContain [peanuts]")
+    func peanutPhraseDetectsPeanutsAsTrace() {
+        let result = detector.detect(in: "Yer fıstığı içerebilir.")
+        #expect(result.contains.isEmpty)
+        #expect(result.mayContain == [.peanuts])
+    }
+
+    @Test("\"Sert kabuklu meyve içerebilir.\" → mayContain [nuts]")
+    func hardShelledFruitPhraseDetectsNutsAsTrace() {
+        let result = detector.detect(in: "Sert kabuklu meyve içerebilir.")
+        #expect(result.contains.isEmpty)
+        #expect(result.mayContain == [.nuts])
+    }
+
+    @Test("\"Sert kabuklu meyveler ve susam içerebilir.\" → mayContain [nuts, sesame]")
+    func hardShelledFruitsAndSesamePhraseDetectsBothAsTrace() {
+        let result = detector.detect(in: "Sert kabuklu meyveler ve susam içerebilir.")
+        #expect(result.contains.isEmpty)
+        #expect(result.mayContain == [.nuts, .sesame])
+    }
+
+    @Test("\"Kabuklu yemişler içerebilir.\" → mayContain [nuts]")
+    func shelledNutsPhraseDetectsNutsAsTrace() {
+        let result = detector.detect(in: "Kabuklu yemişler içerebilir.")
+        #expect(result.contains.isEmpty)
+        #expect(result.mayContain == [.nuts])
+    }
+
+    @Test("\"Sert kabuklu meyveler\" içerik listesinde geçerse contains [nuts] olur")
+    func hardShelledFruitsInContentListIsContains() {
+        let result = detector.detect(in: "Sert kabuklu meyveler, şeker, tuz.")
+        #expect(result.contains == [.nuts])
+        #expect(result.mayContain.isEmpty)
+    }
+
+    // MARK: - Bileşik yiyecekler
+
+    @Test("Un bazlı bileşik yiyecekler gluten olarak yakalanır (makarna, şehriye, erişte, yufka)")
+    func pastaAndDoughCompoundFoodsDetectGluten() {
+        let result = detector.detect(in: "makarna, şehriye, erişte, yufka")
+        #expect(result.contains == [.gluten])
+    }
+
+    @Test("Fırın ürünleri gluten olarak yakalanır (ekmek, bisküvi, kraker, simit, kek, kadayıf)")
+    func bakeryCompoundFoodsDetectGluten() {
+        let result = detector.detect(in: "ekmek, bisküvi, kraker, simit, kek, kadayıf")
+        #expect(result.contains == [.gluten])
+    }
+
+    @Test("\"mayonez\" yumurta alerjeni olarak yakalanır")
+    func mayonnaiseDetectsEggs() {
+        let result = detector.detect(in: "mayonez")
+        #expect(result.contains == [.eggs])
+    }
+
+    @Test("\"ekmek mayası\" (maya) gluten olarak yanlış yakalanmaz")
+    func breadYeastDoesNotFalselyTriggerGluten() {
+        let result = detector.detect(in: "ekmek mayası, su, tuz")
+        #expect(result.contains.isEmpty)
+    }
+
+    @Test("\"kekik\" (baharat) \"kek\" kelimesinden gluten olarak yanlış yakalanmaz")
+    func thymeDoesNotFalselyTriggerGlutenFromKek() {
+        let result = detector.detect(in: "kekik, tuz, zeytinyağı")
+        #expect(result.contains.isEmpty)
+    }
+
+    // MARK: - Yabancı dil tespiti
+
+    @Test("Arapça metin anlaşılamadı olarak işaretlenir")
+    func arabicTextIsMarkedAsUnrecognizedLanguage() {
+        let result = detector.detect(in: "يحتوي هذا المنتج على القمح والحليب والبيض")
+        #expect(result.isUnrecognizedLanguage)
+        #expect(result.contains.isEmpty)
+        #expect(result.mayContain.isEmpty)
+    }
+
+    @Test("Rusça metin anlaşılamadı olarak işaretlenir")
+    func russianTextIsMarkedAsUnrecognizedLanguage() {
+        let result = detector.detect(in: "Этот продукт содержит пшеницу, молоко и яйца")
+        #expect(result.isUnrecognizedLanguage)
+        #expect(result.contains.isEmpty)
+        #expect(result.mayContain.isEmpty)
+    }
+
+    @Test("Kiril alfabesiyle kısa metin de (uzunluktan bağımsız) anlaşılamadı sayılır")
+    func cyrillicShortTextIsUnrecognizedRegardlessOfLength() {
+        let result = detector.detect(in: "Мука, сахар")
+        #expect(result.isUnrecognizedLanguage)
+    }
+
+    @Test("Latin alfabeli ama bilinen kelime içermeyen kısa yabancı metin anlaşılamadı sayılır")
+    func shortLatinTextWithNoKnownWordIsUnrecognized() {
+        let result = detector.detect(in: "Weizenmehl, Zucker")
+        #expect(result.isUnrecognizedLanguage)
+    }
+
+    @Test("\"mayonez\" kısa olsa da bilinen bir alerjen kelimesi, anlaşılamadı sayılmaz")
+    func shortTextWithKnownAllergenWordIsNotUnrecognized() {
+        let result = detector.detect(in: "mayonez")
+        #expect(!result.isUnrecognizedLanguage)
+        #expect(result.contains == [.eggs])
+    }
+
+    @Test("\"su\" kısa olsa da bilinen yaygın bir kelime, anlaşılamadı sayılmaz")
+    func shortTextWithKnownGenericWordIsNotUnrecognized() {
+        let result = detector.detect(in: "su")
+        #expect(!result.isUnrecognizedLanguage)
+        #expect(result.contains.isEmpty)
+        #expect(result.mayContain.isEmpty)
+    }
 }

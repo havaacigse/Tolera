@@ -27,6 +27,21 @@ struct CheckProductUseCase {
         }
 
         let detection = detector.detect(in: product.ingredientsText ?? "")
+
+        // İçindekiler metni Türkçe/İngilizce dışında bir dildeyse analiz güvenilmez;
+        // metin hiç anlaşılamadığı için durum unknown olur.
+        guard !detection.isUnrecognizedLanguage else {
+            return ProductCheckResult(
+                product: product,
+                status: .unknown,
+                matchedAllergens: [],
+                matchedTraces: [],
+                detectedFromIngredients: [],
+                matchedCustomTerms: [],
+                isCosmeticNotSupported: false
+            )
+        }
+
         let textMentionedAllergens = detection.contains.union(detection.mayContain)
         let detectedFromIngredients = textMentionedAllergens.subtracting(product.allergens)
 

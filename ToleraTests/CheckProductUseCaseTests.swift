@@ -139,4 +139,15 @@ struct CheckProductUseCaseTests {
         #expect(result.matchedTraces.isEmpty)
         #expect(result.isCosmeticNotSupported)
     }
+
+    @Test func yabanciDilIcindekilerMetniUnknownDoner() {
+        let product = makeProduct(
+            allergens: [.milk],
+            ingredientsText: "Этот продукт содержит пшеницу, молоко и яйца"
+        )
+        let result = CheckProductUseCase().execute(product: product, userAllergens: [.milk])
+
+        #expect(result.status == .unknown)
+        #expect(result.matchedAllergens.isEmpty)
+    }
 }

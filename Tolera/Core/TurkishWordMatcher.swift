@@ -17,9 +17,22 @@ enum TurkishWordMatcher {
     }
 
     static func matchesWordStart(keyword: String, in normalizedText: String) -> Bool {
+        matches(keyword: keyword, in: normalizedText, requireTrailingBoundary: false)
+    }
+
+    /// `matchesWordStart`'ın aksine kelimenin TAMAMI eşleşmeli (ör. "su" kelimesi
+    /// "süt" → "sut" içinde kelime başı olarak yanlışlıkla eşleşmesin diye).
+    static func matchesWholeWord(keyword: String, in normalizedText: String) -> Bool {
+        matches(keyword: keyword, in: normalizedText, requireTrailingBoundary: true)
+    }
+
+    private static func matches(keyword: String, in normalizedText: String, requireTrailingBoundary: Bool) -> Bool {
         let foldedKeyword = foldTurkishCharacters(keyword)
         let foldedText = foldTurkishCharacters(normalizedText)
-        let pattern = "\\b" + NSRegularExpression.escapedPattern(for: foldedKeyword)
+        var pattern = "\\b" + NSRegularExpression.escapedPattern(for: foldedKeyword)
+        if requireTrailingBoundary {
+            pattern += "\\b"
+        }
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return false }
         let range = NSRange(foldedText.startIndex..., in: foldedText)
         return regex.firstMatch(in: foldedText, range: range) != nil

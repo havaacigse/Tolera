@@ -101,7 +101,14 @@ struct SearchView: View {
             banner(for: result)
             productHeader(for: result.product)
             details(for: result)
+            disclaimerNote
         }
+    }
+
+    private var disclaimerNote: some View {
+        Text("Bu sonuç bilgi amaçlıdır. Ciddi alerjin varsa ambalaj etiketini mutlaka kontrol et.")
+            .font(.caption2)
+            .foregroundStyle(.secondary)
     }
 
     private func banner(for result: ProductCheckResult) -> some View {
