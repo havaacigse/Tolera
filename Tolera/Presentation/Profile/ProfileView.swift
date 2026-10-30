@@ -3,6 +3,8 @@ import SwiftUI
 struct ProfileView: View {
     @State private var viewModel: ProfileViewModel
     @State private var isEditingName = false
+    @State private var isAddingCustomTerm = false
+    @State private var newCustomTerm = ""
 
     init(viewModel: ProfileViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -23,6 +25,8 @@ struct ProfileView: View {
                         }
                     }
 
+                    customTermsSection
+
                     Text("Bilgilerin sadece bu cihazda saklanır.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -30,6 +34,53 @@ struct ProfileView: View {
                 .padding()
             }
             .navigationTitle("Profil")
+        }
+        .alert("Yeni hassasiyet", isPresented: $isAddingCustomTerm) {
+            TextField("Örn. çilek", text: $newCustomTerm)
+            Button("Ekle") {
+                viewModel.addCustomTerm(newCustomTerm)
+                newCustomTerm = ""
+            }
+            Button("Vazgeç", role: .cancel) {
+                newCustomTerm = ""
+            }
+        }
+    }
+
+    private var customTermsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Diğer hassasiyetlerim")
+                .font(.headline)
+
+            FlowLayout(spacing: 8) {
+                ForEach(viewModel.customTerms, id: \.self) { term in
+                    HStack(spacing: 4) {
+                        Text(term)
+                        Button {
+                            viewModel.removeCustomTerm(term)
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .font(.caption)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.secondary.opacity(0.15))
+                    .clipShape(Capsule())
+                }
+
+                Button {
+                    isAddingCustomTerm = true
+                } label: {
+                    Label("Ekle", systemImage: "plus")
+                        .font(.caption)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.accentColor.opacity(0.15))
+                .clipShape(Capsule())
+            }
         }
     }
 

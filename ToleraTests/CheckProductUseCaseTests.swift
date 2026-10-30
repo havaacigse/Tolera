@@ -99,4 +99,20 @@ struct CheckProductUseCaseTests {
         #expect(result.detectedFromIngredients == [.gluten])
         #expect(result.matchedAllergens == [.milk, .gluten])
     }
+
+    @Test func ozelTerimEslesirseUnsafeDöner() {
+        let product = makeProduct(ingredientsText: "çilek aroması, şeker")
+        let result = CheckProductUseCase().execute(product: product, userAllergens: [], customTerms: ["çilek"])
+
+        #expect(result.status == .unsafe)
+        #expect(result.matchedCustomTerms == ["çilek"])
+    }
+
+    @Test func ozelTerimVarAmaIcindekilerBosUnknownDöner() {
+        let product = makeProduct(ingredientsText: nil)
+        let result = CheckProductUseCase().execute(product: product, userAllergens: [], customTerms: ["çilek"])
+
+        #expect(result.status == .unknown)
+        #expect(result.matchedCustomTerms.isEmpty)
+    }
 }

@@ -35,7 +35,7 @@ struct IngredientAllergenDetector {
     ]
 
     func detect(in text: String) -> Set<Allergen> {
-        var normalized = text.lowercased(with: Locale(identifier: "tr_TR"))
+        var normalized = TurkishWordMatcher.normalize(text)
 
         for plantMilk in plantMilks {
             normalized = normalized.replacingOccurrences(of: plantMilk.phrase, with: plantMilk.replacement)
@@ -47,23 +47,16 @@ struct IngredientAllergenDetector {
 
         var found: Set<Allergen> = []
 
-        for phrase in pistachioPhrases where matchesWordStart(keyword: phrase, in: normalized) {
+        for phrase in pistachioPhrases where TurkishWordMatcher.matchesWordStart(keyword: phrase, in: normalized) {
             found.insert(.nuts)
         }
         for phrase in pistachioPhrases {
             normalized = normalized.replacingOccurrences(of: phrase, with: " ")
         }
 
-        for (allergen, keywords) in keywordsByAllergen where keywords.contains(where: { matchesWordStart(keyword: $0, in: normalized) }) {
+        for (allergen, keywords) in keywordsByAllergen where keywords.contains(where: { TurkishWordMatcher.matchesWordStart(keyword: $0, in: normalized) }) {
             found.insert(allergen)
         }
         return found
-    }
-
-    private func matchesWordStart(keyword: String, in text: String) -> Bool {
-        let pattern = "\\b" + NSRegularExpression.escapedPattern(for: keyword)
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return false }
-        let range = NSRange(text.startIndex..., in: text)
-        return regex.firstMatch(in: text, range: range) != nil
     }
 }

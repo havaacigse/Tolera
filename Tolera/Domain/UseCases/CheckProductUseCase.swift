@@ -2,12 +2,17 @@ import Foundation
 
 struct CheckProductUseCase {
     private let detector: IngredientAllergenDetector
+    private let customTermDetector: CustomTermDetector
 
-    init(detector: IngredientAllergenDetector = IngredientAllergenDetector()) {
+    init(
+        detector: IngredientAllergenDetector = IngredientAllergenDetector(),
+        customTermDetector: CustomTermDetector = CustomTermDetector()
+    ) {
         self.detector = detector
+        self.customTermDetector = customTermDetector
     }
 
-    func execute(product: Product, userAllergens: Set<Allergen>) -> ProductCheckResult {
+    func execute(product: Product, userAllergens: Set<Allergen>, customTerms: [String] = []) -> ProductCheckResult {
         let detectedFromIngredients = detector.detect(in: product.ingredientsText ?? "")
             .subtracting(product.allergens)
         let allAllergens = product.allergens.union(detectedFromIngredients)
@@ -15,13 +20,18 @@ struct CheckProductUseCase {
         let matchedAllergens = allAllergens.intersection(userAllergens)
         let matchedTraces = product.traces.intersection(userAllergens)
             .subtracting(matchedAllergens)
+        let matchedCustomTerms = customTermDetector.detect(customTerms: customTerms, in: product.ingredientsText ?? "")
+
+        let noIngredientsText = product.ingredientsText?.isEmpty ?? true
+        let unknownDueToMissingOfficialData = product.allergens.isEmpty && noIngredientsText
+        let unknownDueToUncheckedCustomTerms = !customTerms.isEmpty && noIngredientsText
 
         let status: CheckStatus
-        if !matchedAllergens.isEmpty {
+        if !matchedAllergens.isEmpty || !matchedCustomTerms.isEmpty {
             status = .unsafe
         } else if !matchedTraces.isEmpty {
             status = .caution
-        } else if product.allergens.isEmpty && (product.ingredientsText?.isEmpty ?? true) {
+        } else if unknownDueToMissingOfficialData || unknownDueToUncheckedCustomTerms {
             status = .unknown
         } else {
             status = .safe
@@ -32,7 +42,8 @@ struct CheckProductUseCase {
             status: status,
             matchedAllergens: matchedAllergens,
             matchedTraces: matchedTraces,
-            detectedFromIngredients: detectedFromIngredients
+            detectedFromIngredients: detectedFromIngredients,
+            matchedCustomTerms: matchedCustomTerms
         )
     }
 }

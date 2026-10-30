@@ -35,7 +35,12 @@ final class SearchViewModel {
             do {
                 let product = try await productRepository.product(barcode: barcode)
                 let userAllergens = profileRepository.loadAllergens()
-                result = checkProductUseCase.execute(product: product, userAllergens: userAllergens)
+                let customTerms = profileRepository.loadCustomTerms()
+                result = checkProductUseCase.execute(
+                    product: product,
+                    userAllergens: userAllergens,
+                    customTerms: customTerms
+                )
             } catch let error as ProductError {
                 errorMessage = message(for: error)
             } catch {

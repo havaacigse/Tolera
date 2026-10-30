@@ -13,4 +13,5 @@ struct ProductCheckResult {
     let matchedAllergens: Set<Allergen>
     let matchedTraces: Set<Allergen>
     let detectedFromIngredients: Set<Allergen>
+    let matchedCustomTerms: [String]
 }

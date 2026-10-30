@@ -9,4 +9,7 @@ protocol UserProfileRepository {
 
     func hasCompletedOnboarding() -> Bool
     func setOnboardingCompleted()
+
+    func loadCustomTerms() -> [String]
+    func save(customTerms: [String])
 }

@@ -124,7 +124,9 @@ struct SearchView: View {
     private func bannerInfo(for result: ProductCheckResult) -> (emoji: String, message: String, color: Color) {
         switch result.status {
         case .unsafe:
-            let names = result.matchedAllergens.map(\.displayName).sorted().joined(separator: ", ")
+            let names = (result.matchedAllergens.map(\.displayName) + result.matchedCustomTerms)
+                .sorted()
+                .joined(separator: ", ")
             return ("🚫", "Senin için uygun değil — \(names) içeriyor", .red)
         case .caution:
             let names = result.matchedTraces.map(\.displayName).sorted().joined(separator: ", ")
@@ -179,6 +181,10 @@ struct SearchView: View {
                 allergenRow(title: "Eser miktar uyarıları", allergens: result.matchedTraces)
             }
 
+            if !result.matchedCustomTerms.isEmpty {
+                customTermRow(title: "Eşleşen diğer hassasiyetler", terms: result.matchedCustomTerms)
+            }
+
             if let ingredients = result.product.ingredientsText, !ingredients.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("İçindekiler")
@@ -199,6 +205,18 @@ struct SearchView: View {
                 .foregroundStyle(.secondary)
             ForEach(allergens.sorted(by: { $0.displayName < $1.displayName })) { allergen in
                 Text("\(allergen.emoji) \(allergen.displayName)")
+                    .font(.caption)
+            }
+        }
+    }
+
+    private func customTermRow(title: String, terms: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+            ForEach(terms.sorted(), id: \.self) { term in
+                Text(term)
                     .font(.caption)
             }
         }
