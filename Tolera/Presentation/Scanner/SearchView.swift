@@ -34,6 +34,9 @@ struct SearchView: View {
                 .padding()
             }
             .navigationTitle("Ara")
+            .navigationDestination(for: Product.self) { product in
+                ProductDetailView(viewModel: viewModel.makeDetailViewModel(for: product))
+            }
         }
         .sheet(isPresented: $isShowingScanner) {
             BarcodeScannerView { code in
@@ -105,12 +108,84 @@ struct SearchView: View {
             emptyProfileNotice
         } else {
             VStack(alignment: .leading, spacing: 20) {
-                banner(for: result)
-                productHeader(for: result.product)
-                details(for: result)
-                disclaimerNote
+                ProductResultView(result: result)
+
+                if result.status == .unsafe || result.status == .caution {
+                    alternativesSection
+                }
             }
         }
+    }
+
+    @ViewBuilder
+    private var alternativesSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Bunun yerine deneyebileceklerin")
+                .font(.headline)
+
+            if viewModel.isLoadingAlternatives {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+            } else if viewModel.alternativesLoadFailed {
+                Text("Alternatifler şu an yüklenemedi.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else if let alternatives = viewModel.alternatives {
+                if alternatives.isEmpty {
+                    Text("Bu kategoride senin için uygun ve içerik bilgisi olan bir alternatif bulamadık.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(alternatives) { alternative in
+                        NavigationLink(value: alternative) {
+                            alternativeCard(for: alternative)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    private func alternativeCard(for product: Product) -> some View {
+        HStack(spacing: 12) {
+            if let imageURL = product.imageURL {
+                AsyncImage(url: imageURL) { image in
+                    image.resizable().scaledToFit()
+                } placeholder: {
+                    Color.secondary.opacity(0.1)
+                }
+                .frame(width: 48, height: 48)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(product.name)
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+
+                if let brand = product.brand {
+                    Text(brand)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Text("Seçtiğin hassasiyetlerin hiçbirini içermiyor.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(10)
+        .background(Color.secondary.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private var emptyProfileNotice: some View {
@@ -173,147 +248,20 @@ struct SearchView: View {
         .background(Color.secondary.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 20))
     }
-
-    private var disclaimerNote: some View {
-        Text("Bu sonuç bilgi amaçlıdır. Ciddi alerjin varsa ambalaj etiketini mutlaka kontrol et.")
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-    }
-
-    private func banner(for result: ProductCheckResult) -> some View {
-        let info = bannerInfo(for: result)
-        return VStack(spacing: 8) {
-            Text(info.emoji)
-                .font(.system(size: 48))
-            Text(info.message)
-                .font(.title3.bold())
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 32)
-        .padding(.horizontal, 16)
-        .background(info.color.opacity(0.15))
-        .foregroundStyle(info.color)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-    }
-
-    private func bannerInfo(for result: ProductCheckResult) -> (emoji: String, message: String, color: Color) {
-        if result.isCosmeticNotSupported {
-            return ("🧴", "Bu bir kozmetik ürün. Kozmetik ürün kontrolü yakında eklenecek.", .gray)
-        }
-
-        switch result.status {
-        case .unsafe:
-            let names = (result.matchedAllergens.map(\.displayName) + result.matchedCustomTerms)
-                .sorted()
-                .joined(separator: ", ")
-            return ("🚫", "Senin için uygun değil — \(names) içeriyor", .red)
-        case .caution:
-            let names = result.matchedTraces.map(\.displayName).sorted().joined(separator: ", ")
-            return ("⚠️", "Dikkat — eser miktarda \(names) içerebilir", .orange)
-        case .safe:
-            return ("✅", "Senin için uygun görünüyor", .green)
-        case .unknown:
-            return ("❓", "Yeterli bilgi yok — etiketi kontrol et", .gray)
-        }
-    }
-
-    private func productHeader(for product: Product) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if let imageURL = product.imageURL {
-                AsyncImage(url: imageURL) { image in
-                    image.resizable().scaledToFit()
-                } placeholder: {
-                    ProgressView()
-                }
-                .frame(height: 140)
-                .frame(maxWidth: .infinity)
-            }
-
-            Text(product.name)
-                .font(.headline)
-
-            if let brand = product.brand {
-                Text(brand)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func details(for result: ProductCheckResult) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if !result.detectedFromIngredients.isEmpty {
-                Text("İçindekiler listesinden tespit edildi")
-                    .font(.caption2)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.secondary.opacity(0.15))
-                    .clipShape(Capsule())
-            }
-
-            whyExplanationSection(for: result)
-
-            if let ingredients = result.product.ingredientsText, !ingredients.isEmpty {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("İçindekiler")
-                        .font(.caption.bold())
-                        .foregroundStyle(.secondary)
-                    Text(ingredients)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func whyExplanationSection(for result: ProductCheckResult) -> some View {
-        let relevantAllergens = result.matchedAllergens.union(result.matchedTraces)
-            .sorted(by: { $0.displayName < $1.displayName })
-
-        if !relevantAllergens.isEmpty || !result.matchedCustomTerms.isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Neden bu sonuç?")
-                    .font(.caption.bold())
-                    .foregroundStyle(.secondary)
-
-                ForEach(relevantAllergens) { allergen in
-                    whyRow(
-                        icon: allergen.emoji,
-                        name: allergen.displayName,
-                        reason: result.allergenReasons[allergen] ?? ""
-                    )
-                }
-
-                ForEach(result.matchedCustomTerms.sorted(), id: \.self) { term in
-                    whyRow(icon: "🔸", name: term, reason: "eşleşen kelime")
-                }
-            }
-        }
-    }
-
-    private func whyRow(icon: String, name: String, reason: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(icon)
-            Text(name)
-                .font(.caption)
-            Spacer()
-            Text(reason)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.trailing)
-        }
-    }
 }
 
 #Preview {
+    let productRepository = ProductRepositoryImpl()
+    let checkProductUseCase = CheckProductUseCase()
     SearchView(
         viewModel: SearchViewModel(
-            productRepository: ProductRepositoryImpl(),
+            productRepository: productRepository,
             profileRepository: UserProfileRepositoryImpl(),
-            checkProductUseCase: CheckProductUseCase()
+            checkProductUseCase: checkProductUseCase,
+            findAlternativesUseCase: FindAlternativesUseCase(
+                productRepository: productRepository,
+                checkProductUseCase: checkProductUseCase
+            )
         ),
         onGoToProfile: {}
     )

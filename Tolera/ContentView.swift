@@ -35,11 +35,17 @@ struct ContentView: View {
 }
 
 #Preview {
+    let productRepository = ProductRepositoryImpl()
+    let checkProductUseCase = CheckProductUseCase()
     ContentView(
         searchViewModel: SearchViewModel(
-            productRepository: ProductRepositoryImpl(),
+            productRepository: productRepository,
             profileRepository: UserProfileRepositoryImpl(),
-            checkProductUseCase: CheckProductUseCase()
+            checkProductUseCase: checkProductUseCase,
+            findAlternativesUseCase: FindAlternativesUseCase(
+                productRepository: productRepository,
+                checkProductUseCase: checkProductUseCase
+            )
         ),
         profileViewModel: ProfileViewModel(repository: UserProfileRepositoryImpl())
     )

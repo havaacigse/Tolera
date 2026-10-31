@@ -12,6 +12,14 @@ struct ToleraApp: App {
     private let productRepository: ProductRepository = ProductRepositoryImpl()
     private let profileRepository: UserProfileRepository = UserProfileRepositoryImpl()
     private let checkProductUseCase = CheckProductUseCase()
+    private let findAlternativesUseCase: FindAlternativesUseCase
+
+    init() {
+        findAlternativesUseCase = FindAlternativesUseCase(
+            productRepository: productRepository,
+            checkProductUseCase: checkProductUseCase
+        )
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -21,7 +29,8 @@ struct ToleraApp: App {
                 searchViewModel: SearchViewModel(
                     productRepository: productRepository,
                     profileRepository: profileRepository,
-                    checkProductUseCase: checkProductUseCase
+                    checkProductUseCase: checkProductUseCase,
+                    findAlternativesUseCase: findAlternativesUseCase
                 ),
                 profileViewModel: ProfileViewModel(repository: profileRepository)
             )
