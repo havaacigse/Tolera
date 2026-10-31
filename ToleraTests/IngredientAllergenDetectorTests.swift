@@ -429,6 +429,34 @@ struct IngredientAllergenDetectorTests {
         #expect(result.mayContain.isEmpty)
     }
 
+    // MARK: - Dil kontrolü sadece "safe"i engeller, alerjen bulunduğunda devreye girmez
+
+    /// Gerçek cihaz hatası: marka adı ağırlıklı, 20+ karakterlik bir OCR metninde
+    /// NLLanguageRecognizer metni Türkçe/İngilizce olarak tanımayabiliyor ("BİRŞAH"
+    /// gibi marka kelimesi yüzünden), ama metinde "yoğurt" (süt) geçiyor. Alerjen
+    /// araması dil kontrolünden ÖNCE yapılmalı ki bu durumda yanlışlıkla "unknown"
+    /// dönülmesin.
+    @Test("Marka adı ağırlıklı kısa OCR metninde \"yoğurt\" geçerse dil kontrolü sonucu ezmez")
+    func brandHeavyOcrTextWithMilkKeywordIsNotUnrecognized() {
+        let result = detector.detect(in: "BİRŞAH YOĞURT TAM YAĞLI 500 G")
+        #expect(!result.isUnrecognizedLanguage)
+        #expect(result.contains == [.milk])
+    }
+
+    @Test("Türkçe karakter eksik \"yogurt\" da aynı şekilde dil kontrolünden önce bulunur")
+    func brandHeavyOcrTextWithAsciiMilkKeywordIsNotUnrecognized() {
+        let result = detector.detect(in: "BIRSAH YOGURT 500G")
+        #expect(!result.isUnrecognizedLanguage)
+        #expect(result.contains == [.milk])
+    }
+
+    @Test("Hiç alerjen kelimesi eşleşmeyen Kiril metin anlaşılamadı kalır")
+    func cyrillicTextWithNoAllergenMatchStillUnrecognized() {
+        let result = detector.detect(in: "Мука, сахар, молоко")
+        #expect(result.isUnrecognizedLanguage)
+        #expect(result.contains.isEmpty)
+    }
+
     // MARK: - "Neden?" (tetikleyen ifade)
 
     @Test("gluten alerjeni için tetikleyen ifade (virgülle ayrılmış öğe) döner")

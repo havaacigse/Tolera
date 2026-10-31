@@ -9,6 +9,10 @@ final class IngredientsScanViewModel {
     var isShowingFullText = false
     var recognitionError: String?
     var result: ProductCheckResult?
+    /// "İçindekiler" başlığı metinde bulunamadıysa true; kontrol ekranında kullanıcıyı
+    /// önceden uyarmak için kullanılır. Henüz bir metin okunmadıysa varsayılan true'dur
+    /// (uyarı gösterilmez).
+    var hasIngredientsHeading = true
 
     #if DEBUG
     /// Sadece DEBUG build'de görünen bir anahtarla kontrol edilir; varsayılan false'tur
@@ -41,6 +45,7 @@ final class IngredientsScanViewModel {
         extractedText = ""
         fullRecognizedText = ""
         isShowingFullText = false
+        hasIngredientsHeading = true
 
         Task {
             #if DEBUG
@@ -59,6 +64,7 @@ final class IngredientsScanViewModel {
                 // metnini (fullRecognizedText) değişmeden gösterir.
                 fullRecognizedText = rawText
                 let latinOnlyText = OCRNonLatinWordFilter.removeNonLatinWords(from: rawText)
+                hasIngredientsHeading = IngredientsSectionExtractor.headingFound(in: latinOnlyText)
                 extractedText = IngredientsSectionExtractor.extract(from: latinOnlyText)
             } catch {
                 recognitionError = "Metin okunamadı. Daha net bir fotoğraf dene."
@@ -74,7 +80,8 @@ final class IngredientsScanViewModel {
         result = checkIngredientsTextUseCase.execute(
             rawText: textToAnalyze,
             userAllergens: userAllergens,
-            customTerms: customTerms
+            customTerms: customTerms,
+            headingFound: hasIngredientsHeading
         )
     }
 
@@ -82,6 +89,7 @@ final class IngredientsScanViewModel {
         extractedText = ""
         fullRecognizedText = ""
         isShowingFullText = false
+        hasIngredientsHeading = true
         recognitionError = nil
         result = nil
     }

@@ -15,7 +15,8 @@ struct CheckIngredientsTextUseCase {
     func execute(
         rawText: String,
         userAllergens: Set<Allergen>,
-        customTerms: [String] = []
+        customTerms: [String] = [],
+        headingFound: Bool
     ) -> ProductCheckResult {
         let cleanedText = OCRTextCleaner.clean(rawText)
         let product = Product(
@@ -29,10 +30,30 @@ struct CheckIngredientsTextUseCase {
             categories: [],
             type: .food
         )
-        return checkProductUseCase.execute(
+        let result = checkProductUseCase.execute(
             product: product,
             userAllergens: userAllergens,
             customTerms: customTerms
+        )
+
+        // Temkinli ilke: "içindekiler" başlığı metinde hiç bulunamadıysa (ör. OCR sadece
+        // üretim yeri/adres kısmını okumuş olabilir), analiz edilen metnin güvenilirliği
+        // belirsizdir. Bu durumda sonuç ASLA "safe" olamaz — gerçekten alerjen eşleştiyse
+        // (unsafe/caution) bu geçerliliğini korur, ama "hiçbir şey bulunamadı" sonucu
+        // yanlışlıkla "güvenli" yerine "yetersiz bilgi" olarak işaretlenir.
+        guard !headingFound, result.status == .safe else { return result }
+
+        return ProductCheckResult(
+            product: result.product,
+            status: .unknown,
+            matchedAllergens: result.matchedAllergens,
+            matchedTraces: result.matchedTraces,
+            detectedFromIngredients: result.detectedFromIngredients,
+            matchedCustomTerms: result.matchedCustomTerms,
+            isCosmeticNotSupported: result.isCosmeticNotSupported,
+            isProfileEmpty: result.isProfileEmpty,
+            isMissingIngredientsHeading: true,
+            allergenReasons: result.allergenReasons
         )
     }
 }

@@ -87,6 +87,12 @@ struct IngredientsScanView: View {
                 .font(.caption.bold())
                 .foregroundStyle(.secondary)
 
+            if !viewModel.hasIngredientsHeading {
+                Text("⚠️ 'İçindekiler' başlığı bulunamadı. Ambalajın 'İçindekiler' yazan bölümünü yakından çekmeyi dene, yoksa sonuç güvenilir olmayabilir.")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+
             TextEditor(text: viewModel.isShowingFullText ? $viewModel.fullRecognizedText : $viewModel.extractedText)
                 .frame(minHeight: 160)
                 .padding(4)

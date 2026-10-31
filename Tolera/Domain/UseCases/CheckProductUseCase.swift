@@ -24,6 +24,7 @@ struct CheckProductUseCase {
                 matchedCustomTerms: [],
                 isCosmeticNotSupported: true,
                 isProfileEmpty: false,
+                isMissingIngredientsHeading: false,
                 allergenReasons: [:]
             )
         }
@@ -40,6 +41,7 @@ struct CheckProductUseCase {
                 matchedCustomTerms: [],
                 isCosmeticNotSupported: false,
                 isProfileEmpty: true,
+                isMissingIngredientsHeading: false,
                 allergenReasons: [:]
             )
         }
@@ -58,6 +60,7 @@ struct CheckProductUseCase {
                 matchedCustomTerms: [],
                 isCosmeticNotSupported: false,
                 isProfileEmpty: false,
+                isMissingIngredientsHeading: false,
                 allergenReasons: [:]
             )
         }
@@ -107,6 +110,7 @@ struct CheckProductUseCase {
             matchedCustomTerms: matchedCustomTerms,
             isCosmeticNotSupported: false,
             isProfileEmpty: false,
+            isMissingIngredientsHeading: false,
             allergenReasons: allergenReasons
         )
     }

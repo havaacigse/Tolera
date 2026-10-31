@@ -30,6 +30,14 @@ enum IngredientsSectionExtractor {
         return String(characters[startOffset..<endOffset]).trimmingCharacters(in: trimCharacterSet)
     }
 
+    /// Metinde "içindekiler"/"bileşenler"/"ingredients" başlığı var mı? `extract` başlık
+    /// bulunamazsa metnin tamamını döndürdüğü için (gürültü metni de dahil), bu bilgi ayrıca
+    /// saklanmalı: başlıksız bir metin (ör. sadece üretim yeri/adres) yanlışlıkla "safe"
+    /// sayılmasın diye çağıran taraf (bkz. `CheckIngredientsTextUseCase`) bunu kullanır.
+    static func headingFound(in text: String) -> Bool {
+        firstMatchCharacterRange(for: startMarkerPatterns, in: fold(text)) != nil
+    }
+
     private static let asciiFoldMap: [Character: Character] = [
         "ı": "i", "İ": "i", "I": "i",
         "ğ": "g", "Ğ": "g",

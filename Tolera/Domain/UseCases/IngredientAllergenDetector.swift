@@ -40,20 +40,29 @@ struct IngredientAllergenDetector {
 
     // MARK: - Ana akış
 
-    /// Sırasıyla: (1) normalize, (2) dil kontrolü, (3) parçalara bölme,
-    /// (4-5) her parçayı sınıflandırıp anahtar kelimelerle eşleştirme,
-    /// (6) sonuçları temkinli ilkeyle birleştirme.
+    /// Sırasıyla: (1) normalize, (2-3) parçalara bölüp anahtar kelimelerle eşleştirme,
+    /// (4) birleştirme, (5) dil kontrolü — ama SADECE hiç alerjen bulunamadıysa.
+    /// Temkinli ilke: dil kontrolü sadece "hiçbir şey bulunamadı" sonucunu "safe" yerine
+    /// "unknown" yapmak içindir; alerjen zaten eşleştiyse (ör. kısa, marka adı ağırlıklı bir
+    /// OCR metninde NLLanguageRecognizer'ın metni yanlış dil sanması gibi durumlarda) bu
+    /// sonucu asla ezmez. Gerçek cihazda "BİRŞAH YOĞURT..." gibi metinlerde yaşanan bir
+    /// hatadan sonra bu sıralamaya geçildi.
     func detect(in text: String) -> IngredientDetectionResult {
         let normalizedText = normalize(text)
+
+        let parts = splitIntoParts(normalizedText)
+        let partDetections = parts.map(classifyAndMatch)
+        let combined = combine(partDetections)
+
+        guard combined.contains.isEmpty, combined.mayContain.isEmpty else {
+            return combined
+        }
 
         guard isSupportedLanguage(normalizedText) else {
             return IngredientDetectionResult(contains: [], mayContain: [], isUnrecognizedLanguage: true, reasons: [:])
         }
 
-        let parts = splitIntoParts(normalizedText)
-        let partDetections = parts.map(classifyAndMatch)
-
-        return combine(partDetections)
+        return combined
     }
 
     // MARK: - 1. Normalize

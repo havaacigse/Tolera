@@ -36,6 +36,10 @@ struct ProductResultView: View {
             return ("🧴", "Bu bir kozmetik ürün. Kozmetik ürün kontrolü yakında eklenecek.", .gray)
         }
 
+        if result.isMissingIngredientsHeading {
+            return ("❓", "İçindekiler kısmı bulunamadı. Ambalajın 'İçindekiler' yazan bölümünü yakından çek.", .gray)
+        }
+
         switch result.status {
         case .unsafe:
             let names = (result.matchedAllergens.map(\.displayName) + result.matchedCustomTerms)

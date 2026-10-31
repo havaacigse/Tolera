@@ -43,4 +43,14 @@ struct IngredientsSectionExtractorTests {
         let result = IngredientsSectionExtractor.extract(from: text)
         #expect(result == "şeker, su")
     }
+
+    @Test func baslikVarsaHeadingFoundTrueDoner() {
+        let text = "İÇİNDEKİLER: Buğday unu, şeker"
+        #expect(IngredientsSectionExtractor.headingFound(in: text))
+    }
+
+    @Test func baslikYoksaHeadingFoundFalseDoner() {
+        let text = "Üretim yeri: Konya, Türkiye. Net 500 g."
+        #expect(!IngredientsSectionExtractor.headingFound(in: text))
+    }
 }
