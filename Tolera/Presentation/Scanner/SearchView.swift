@@ -17,6 +17,7 @@ struct SearchView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     scanSection
                     manualEntrySection
+                    ingredientsScanLink
 
                     if viewModel.isLoading {
                         ProgressView()
@@ -112,9 +113,32 @@ struct SearchView: View {
 
                 if result.status == .unsafe || result.status == .caution {
                     alternativesSection
+                } else if result.status == .unknown && !result.isCosmeticNotSupported {
+                    unknownResultIngredientsScanNotice
                 }
             }
         }
+    }
+
+    private var unknownResultIngredientsScanNotice: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Bu ürün için içindekiler bilgisi yok. Ambalaj fotoğrafından kontrol edebilirsin.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            ingredientsScanLink
+        }
+    }
+
+    private var ingredientsScanLink: some View {
+        NavigationLink {
+            IngredientsScanView(viewModel: viewModel.makeIngredientsScanViewModel())
+        } label: {
+            Label("İçindekileri Fotoğrafla", systemImage: "camera.viewfinder")
+                .font(.footnote)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+        }
+        .buttonStyle(.bordered)
     }
 
     @ViewBuilder
@@ -235,12 +259,9 @@ struct SearchView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
-            }
 
-            Text("Yakında: içindekiler fotoğrafını çekerek kontrol edebileceksin.")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+                ingredientsScanLink
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 24)
@@ -261,7 +282,8 @@ struct SearchView: View {
             findAlternativesUseCase: FindAlternativesUseCase(
                 productRepository: productRepository,
                 checkProductUseCase: checkProductUseCase
-            )
+            ),
+            textRecognitionService: VisionTextRecognitionService()
         ),
         onGoToProfile: {}
     )

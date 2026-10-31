@@ -13,6 +13,7 @@ struct ToleraApp: App {
     private let profileRepository: UserProfileRepository = UserProfileRepositoryImpl()
     private let checkProductUseCase = CheckProductUseCase()
     private let findAlternativesUseCase: FindAlternativesUseCase
+    private let textRecognitionService: TextRecognitionService = VisionTextRecognitionService()
 
     init() {
         findAlternativesUseCase = FindAlternativesUseCase(
@@ -30,7 +31,8 @@ struct ToleraApp: App {
                     productRepository: productRepository,
                     profileRepository: profileRepository,
                     checkProductUseCase: checkProductUseCase,
-                    findAlternativesUseCase: findAlternativesUseCase
+                    findAlternativesUseCase: findAlternativesUseCase,
+                    textRecognitionService: textRecognitionService
                 ),
                 profileViewModel: ProfileViewModel(repository: profileRepository)
             )

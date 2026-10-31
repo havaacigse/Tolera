@@ -45,7 +45,8 @@ struct ContentView: View {
             findAlternativesUseCase: FindAlternativesUseCase(
                 productRepository: productRepository,
                 checkProductUseCase: checkProductUseCase
-            )
+            ),
+            textRecognitionService: VisionTextRecognitionService()
         ),
         profileViewModel: ProfileViewModel(repository: UserProfileRepositoryImpl())
     )

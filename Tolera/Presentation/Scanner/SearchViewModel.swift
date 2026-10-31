@@ -16,17 +16,20 @@ final class SearchViewModel {
     private let profileRepository: UserProfileRepository
     private let checkProductUseCase: CheckProductUseCase
     private let findAlternativesUseCase: FindAlternativesUseCase
+    private let textRecognitionService: TextRecognitionService
 
     init(
         productRepository: ProductRepository,
         profileRepository: UserProfileRepository,
         checkProductUseCase: CheckProductUseCase,
-        findAlternativesUseCase: FindAlternativesUseCase
+        findAlternativesUseCase: FindAlternativesUseCase,
+        textRecognitionService: TextRecognitionService
     ) {
         self.productRepository = productRepository
         self.profileRepository = profileRepository
         self.checkProductUseCase = checkProductUseCase
         self.findAlternativesUseCase = findAlternativesUseCase
+        self.textRecognitionService = textRecognitionService
     }
 
     func handleScannedBarcode(_ code: String) {
@@ -103,6 +106,13 @@ final class SearchViewModel {
         ProductDetailViewModel(
             product: product,
             checkProductUseCase: checkProductUseCase,
+            profileRepository: profileRepository
+        )
+    }
+
+    func makeIngredientsScanViewModel() -> IngredientsScanViewModel {
+        IngredientsScanViewModel(
+            textRecognitionService: textRecognitionService,
             profileRepository: profileRepository
         )
     }
