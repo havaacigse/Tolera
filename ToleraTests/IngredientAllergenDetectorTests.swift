@@ -362,8 +362,10 @@ struct IngredientAllergenDetectorTests {
 
     @Test("Fırın ürünleri gluten olarak yakalanır (ekmek, bisküvi, kraker, simit, kek, kadayıf)")
     func bakeryCompoundFoodsDetectGluten() {
+        // "simit" artık hem gluten hem susam kaynağı sayıldığından (bkz. simitDetectsBothGlutenAndSesame),
+        // bu metin için contains artık [.gluten, .sesame] olur.
         let result = detector.detect(in: "ekmek, bisküvi, kraker, simit, kek, kadayıf")
-        #expect(result.contains == [.gluten])
+        #expect(result.contains == [.gluten, .sesame])
     }
 
     @Test("\"mayonez\" yumurta alerjeni olarak yakalanır")
@@ -475,5 +477,112 @@ struct IngredientAllergenDetectorTests {
     func glutenFreeCrossContaminationReasonIsThePhraseItself() {
         let result = detector.detect(in: "glutensiz yulaf unu")
         #expect(result.reasons[.gluten] == "glutensiz yulaf")
+    }
+
+    // MARK: - Yeni süt ürünü kelimeleri (OFF verisinde süt bulunamayan ama alerjenle ilgili kelimeler)
+
+    @Test("Türkçe süt ürünü isimleri (kefir, ayran, kaşar, lor, çökelek, labne) süt alerjeni olarak yakalanır")
+    func turkishDairyProductNamesDetectMilk() {
+        #expect(detector.detect(in: "kefir").contains == [.milk])
+        #expect(detector.detect(in: "ayran").contains == [.milk])
+        #expect(detector.detect(in: "kaşar peyniri tozu").contains == [.milk])
+        #expect(detector.detect(in: "lor peyniri").contains == [.milk])
+        #expect(detector.detect(in: "çökelek").contains == [.milk])
+        #expect(detector.detect(in: "labne").contains == [.milk])
+    }
+
+    @Test("İngilizce süt ürünü kelimeleri (cream, butter, cheese, lactose, yoghurt, casein) süt alerjeni olarak yakalanır")
+    func englishDairyWordsDetectMilk() {
+        #expect(detector.detect(in: "whipping cream").contains == [.milk])
+        #expect(detector.detect(in: "salted butter").contains == [.milk])
+        #expect(detector.detect(in: "cheddar cheese").contains == [.milk])
+        #expect(detector.detect(in: "lactose").contains == [.milk])
+        #expect(detector.detect(in: "plain yoghurt").contains == [.milk])
+        #expect(detector.detect(in: "casein").contains == [.milk])
+    }
+
+    @Test("\"brazil nut\" sert kabuklu yemiş olarak yakalanır")
+    func brazilNutDetectsNuts() {
+        #expect(detector.detect(in: "brazil nuts").contains == [.nuts])
+    }
+
+    @Test("\"semolina\" (irmik) gluten olarak yakalanır")
+    func semolinaDetectsGluten() {
+        #expect(detector.detect(in: "semolina, su").contains == [.gluten])
+    }
+
+    @Test("Türkçe balık türü isimleri (alabalık, sardalya, uskumru, levrek, çipura, palamut) balık alerjeni olarak yakalanır")
+    func turkishFishSpeciesDetectFish() {
+        #expect(detector.detect(in: "alabalık fileto").contains == [.fish])
+        #expect(detector.detect(in: "sardalya").contains == [.fish])
+        #expect(detector.detect(in: "uskumru").contains == [.fish])
+        #expect(detector.detect(in: "levrek").contains == [.fish])
+        #expect(detector.detect(in: "çipura").contains == [.fish])
+        #expect(detector.detect(in: "palamut").contains == [.fish])
+    }
+
+    @Test("\"alabalık\" kelimesi, \"balık\" kelime ortasında geçtiği için ayrı bir anahtar kelime olarak yakalanmalı")
+    func alabalikIsMatchedAsItsOwnKeywordNotViaBalik() {
+        // "balık" kelime başı eşleşmesiyle aranır; "alabalık" içinde "balık" kelime BAŞINDA
+        // değil ortada geçtiği için önceden hiç yakalanmıyordu — bu test o boşluğu kapatır.
+        #expect(detector.detect(in: "alabalık").contains == [.fish])
+    }
+
+    @Test("İngilizce balık isimleri (salmon, tuna, anchovy, cod) balık alerjeni olarak yakalanır")
+    func englishFishNamesDetectFish() {
+        #expect(detector.detect(in: "salmon fillet").contains == [.fish])
+        #expect(detector.detect(in: "tuna, su").contains == [.fish])
+        #expect(detector.detect(in: "anchovy paste").contains == [.fish])
+        #expect(detector.detect(in: "cod liver oil").contains == [.fish])
+    }
+
+    @Test("\"kükürt dioksit\", \"sulphur dioxide\", \"sulfur dioxide\" sülfit alerjeni olarak yakalanır")
+    func sulphurDioxideVariantsDetectSulphites() {
+        #expect(detector.detect(in: "kükürt dioksit").contains == [.sulphites])
+        #expect(detector.detect(in: "sulphur dioxide").contains == [.sulphites])
+        #expect(detector.detect(in: "sulfur dioxide").contains == [.sulphites])
+    }
+
+    @Test("\"termiye\" acı bakla (lupin) alerjeni olarak yakalanır")
+    func termiyeDetectsLupin() {
+        #expect(detector.detect(in: "termiye").contains == [.lupin])
+    }
+
+    @Test("\"lizozim\", \"lysozyme\", \"mayonnaise\" yumurta alerjeni olarak yakalanır")
+    func eggRelatedWordsDetectEggs() {
+        #expect(detector.detect(in: "lizozim").contains == [.eggs])
+        #expect(detector.detect(in: "lysozyme").contains == [.eggs])
+        #expect(detector.detect(in: "mayonnaise").contains == [.eggs])
+    }
+
+    @Test("\"simit\" hem gluten hem susam alerjeni olarak yakalanır")
+    func simitDetectsBothGlutenAndSesame() {
+        let result = detector.detect(in: "simit")
+        #expect(result.contains.isSuperset(of: [.gluten, .sesame]))
+    }
+
+    // MARK: - İstisnalar: süt ürünü OLMAYAN "butter"/"cream" bileşikleri
+
+    @Test("\"cocoa butter\" ve \"shea butter\" süt alerjeni sayılmaz")
+    func cocoaAndSheaButterAreNotDairy() {
+        #expect(detector.detect(in: "cocoa butter").contains.isEmpty)
+        #expect(detector.detect(in: "shea butter").contains.isEmpty)
+    }
+
+    @Test("\"peanut butter\" süt alerjeni sayılmaz, yer fıstığı alerjeni olarak yakalanır")
+    func peanutButterIsPeanutsNotMilk() {
+        let result = detector.detect(in: "peanut butter")
+        #expect(result.contains == [.peanuts])
+        #expect(!result.contains.contains(.milk))
+    }
+
+    @Test("\"cream of tartar\" süt alerjeni sayılmaz")
+    func creamOfTartarIsNotDairy() {
+        #expect(detector.detect(in: "cream of tartar").contains.isEmpty)
+    }
+
+    @Test("\"lor\" kelime başı eşleşmesi \"klorür\" kelimesinin içinde tetiklenmez")
+    func lorDoesNotFalsePositiveInsideChloride() {
+        #expect(detector.detect(in: "kalsiyum klorür").contains.isEmpty)
     }
 }

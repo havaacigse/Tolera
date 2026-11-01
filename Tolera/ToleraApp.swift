@@ -5,6 +5,7 @@
 //  Created by HAVVA on 28.10.2026.
 //
 
+import SwiftData
 import SwiftUI
 
 @main
@@ -14,12 +15,21 @@ struct ToleraApp: App {
     private let checkProductUseCase = CheckProductUseCase()
     private let findAlternativesUseCase: FindAlternativesUseCase
     private let textRecognitionService: TextRecognitionService = VisionTextRecognitionService()
+    private let savedIngredientsTextRepository: SavedIngredientsTextRepository
+    private let scanHistoryRepository: ScanHistoryRepository
 
     init() {
         findAlternativesUseCase = FindAlternativesUseCase(
             productRepository: productRepository,
             checkProductUseCase: checkProductUseCase
         )
+
+        let modelContainer = try! ModelContainer(
+            for: SavedIngredientsTextModel.self, ScanHistoryEntryModel.self
+        )
+        let modelContext = modelContainer.mainContext
+        savedIngredientsTextRepository = SavedIngredientsTextRepositoryImpl(modelContext: modelContext)
+        scanHistoryRepository = ScanHistoryRepositoryImpl(modelContext: modelContext)
     }
 
     var body: some Scene {
