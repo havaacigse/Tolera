@@ -13,7 +13,7 @@ An iOS app that scans a product's barcode (or its ingredients label) and flags w
 - **Cautious-by-design result model**: the result is always one of `unsafe` / `caution` / `safe` / `unknown`, and the app never defaults to "safe" when it isn't sure — e.g. when the ingredients text is missing, in an unrecognized language, the user's profile is empty, or the product is a cosmetic (not yet supported, see below).
 - **Ingredients-photo scanning (OCR)**: for products with no or incomplete data on Open Food Facts, the user can photograph the ingredients label; the text is read with Apple's Vision framework, shown for the user to review/edit, and run through the same rule engine.
 - **Profile & onboarding**: name, allergen selection, and free-text custom sensitivity terms — all stored only on-device (no account, no server).
-- **Tested extensively**: a large unit test suite, a hand-annotated "golden set" of real product labels, and randomized property-based tests that check core safety invariants (e.g. detected allergens can never be hidden by adding more text).
+- Includes unit tests and a set of real product labels used to check the allergen detection rules.
 
 ## Planned Features
 
@@ -45,13 +45,6 @@ Core/           Framework-independent helpers shared across layers
 
 `Domain` has no knowledge of SwiftData, Vision, or networking — those live in `Data`, mapped through the Repository protocols.
 
-## Screenshots
-
-<!-- TODO: add screenshots -->
-| Onboarding | Scan result | Profile |
-|---|---|---|
-| _placeholder_ | _placeholder_ | _placeholder_ |
-
 ## Setup
 
 ```bash
@@ -59,7 +52,7 @@ git clone <repo-url>
 open Tolera.xcodeproj
 ```
 
-No API key is required to run the current features (Open Food Facts is public, no key needed). A **Gemini API key is not included in this repository** and is not currently wired into the app — the architecture reserves a spot for an LLM-based explanation layer behind an `AllergenAnalyzer` protocol, but it isn't implemented yet. If/when that lands, you will need to supply your own Gemini API key (e.g. via an `.xcconfig` file or environment variable, kept out of version control).
+No API key is required to run the current features.
 
 ---
 

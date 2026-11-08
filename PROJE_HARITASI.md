@@ -328,10 +328,11 @@ zamanında cihaza yazılmaz).
 
 ### İzinler (Info.plist / build ayarları)
 
-Kamera izni `INFOPLIST_KEY_NSCameraUsageDescription` build ayarıyla
-tanımlanmış ama **açıklama metni şu an boş** (`Tolera.xcodeproj/project.pbxproj`
-içinde iki hedef konfigürasyonunda da `= ""`); `Tolera/Info.plist` ise
-boş bir `dict` — gerçek izin metni başka bir yerde tanımlı değilse App
-Store/TestFlight incelemesinde veya kamera isteğinde sorun çıkarabilir.
+Kamera izni açıklaması artık dolu ve etkili: `Tolera.xcodeproj/project.pbxproj`'de
+`INFOPLIST_KEY_NSCameraUsageDescription` build ayarı (iki hedef konfigürasyonunda da)
+"Tolera uses the camera to scan product barcodes and ingredient labels." olarak
+ayarlandı. Tek kaynak bu build ayarı — `Tolera/Info.plist` kasıtlı olarak boş
+(`<dict/>`) bırakıldı ki aynı anahtar iki yerde tanımlanmasın. Temiz bir build
+alınıp derlenen `.app/Info.plist`'teki `NSCameraUsageDescription` değeri
+kontrol edilerek doğrulandı.
 Fotoğraf kütüphanesi seçimi (`PhotosPicker`) ayrı bir izin gerektirmiyor.
-Bu gözlem bilgi amaçlıdır, kod değiştirilmedi.
