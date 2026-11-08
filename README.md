@@ -4,7 +4,7 @@ An iOS app that scans a product's barcode (or its ingredients label) and flags w
 
 ## Status
 
-🎓 Graduation project — **in active development**, not feature-complete.
+In active development, not feature-complete.
 
 ## Current Features
 
