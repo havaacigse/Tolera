@@ -24,9 +24,18 @@ struct ToleraApp: App {
             checkProductUseCase: checkProductUseCase
         )
 
-        let modelContainer = try! ModelContainer(
-            for: SavedIngredientsTextModel.self, ScanHistoryEntryModel.self
-        )
+        // Kalıcı depo bozuk/erişilemez olursa uygulama açılışta çökmesin diye bellek-içi
+        // depoya düşülür. Bu depolar henüz hiçbir ekrana bağlı olmadığından veri kaybı
+        // şu an kullanıcıya görünmez; tek amaç açılış çökmesini önlemek.
+        let modelContainer: ModelContainer
+        if let persistent = try? ModelContainer(for: SavedIngredientsTextModel.self, ScanHistoryEntryModel.self) {
+            modelContainer = persistent
+        } else {
+            modelContainer = try! ModelContainer(
+                for: SavedIngredientsTextModel.self, ScanHistoryEntryModel.self,
+                configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+            )
+        }
         let modelContext = modelContainer.mainContext
         savedIngredientsTextRepository = SavedIngredientsTextRepositoryImpl(modelContext: modelContext)
         scanHistoryRepository = ScanHistoryRepositoryImpl(modelContext: modelContext)

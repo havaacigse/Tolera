@@ -58,7 +58,8 @@ final class SearchViewModel {
                 result = checkResult
                 isLoading = false
 
-                if checkResult.status == .unsafe || checkResult.status == .caution {
+                if FeatureFlags.alternativeSuggestionsEnabled,
+                   checkResult.status == .unsafe || checkResult.status == .caution {
                     await fetchAlternatives(
                         for: product,
                         status: checkResult.status,

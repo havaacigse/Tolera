@@ -111,7 +111,8 @@ struct SearchView: View {
             VStack(alignment: .leading, spacing: 20) {
                 ProductResultView(result: result)
 
-                if result.status == .unsafe || result.status == .caution {
+                if FeatureFlags.alternativeSuggestionsEnabled,
+                   result.status == .unsafe || result.status == .caution {
                     alternativesSection
                 } else if result.status == .unknown && !result.isCosmeticNotSupported {
                     unknownResultIngredientsScanNotice
