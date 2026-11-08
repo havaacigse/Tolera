@@ -63,6 +63,3 @@ No API key is required to run the current features (Open Food Facts is public, n
 
 ---
 
-### Türkçe Özet
-
-Tolera, barkod okutularak veya ambalaj fotoğrafı çekilerek bir ürünün kullanıcının alerjen/hassasiyet profiline uygun olup olmadığını kontrol eden bir iOS uygulamasıdır. Alerjen tespiti kural tabanlı ve deterministiktir; belirsiz durumlarda asla "güvenli" sonucuna varmaz. Şu an bitirme projesi kapsamında geliştirilmeye devam etmektedir; alternatif ürün önerisi, kozmetik ürün desteği ve çok dillilik gibi özellikler planlanmış ancak henüz tamamlanmamıştır.
