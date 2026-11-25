@@ -27,15 +27,20 @@ final class IngredientsScanViewModel {
     private let textRecognitionService: TextRecognitionService
     private let checkIngredientsTextUseCase: CheckIngredientsTextUseCase
     private let profileRepository: UserProfileRepository
+    /// Barkod taramasından yönlendirildiyse (otomatik ya da "Yeniden oku" ile) biliniyor;
+    /// doğrudan "Fotoğrafla" butonuyla açılan akışta nil'dir.
+    private let barcode: String?
 
     init(
         textRecognitionService: TextRecognitionService,
         checkIngredientsTextUseCase: CheckIngredientsTextUseCase = CheckIngredientsTextUseCase(),
-        profileRepository: UserProfileRepository
+        profileRepository: UserProfileRepository,
+        barcode: String? = nil
     ) {
         self.textRecognitionService = textRecognitionService
         self.checkIngredientsTextUseCase = checkIngredientsTextUseCase
         self.profileRepository = profileRepository
+        self.barcode = barcode
     }
 
     func recognizeText(from imageData: Data) {

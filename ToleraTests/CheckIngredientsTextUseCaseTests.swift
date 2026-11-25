@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Tolera
 
@@ -41,6 +42,29 @@ struct CheckIngredientsTextUseCaseTests {
 
         #expect(result.product.categories.isEmpty)
         #expect(result.product.barcode.isEmpty)
+    }
+
+    /// Barkod hafızasından (SavedIngredientsTextRepository) servis edilen bir sonuç için
+    /// barkod/marka/görsel/kategori bilgisi de taşınabilmeli (ör. alternatif önerisi ileride
+    /// bu bilgiyi kullanabilsin).
+    @Test func barkodVeOffBilgisiVerilirseUrunTasinir() {
+        let useCase = CheckIngredientsTextUseCase()
+        let imageURL = URL(string: "https://example.com/image.jpg")!
+        let result = useCase.execute(
+            rawText: "su, şeker",
+            userAllergens: [.milk],
+            customTerms: [],
+            headingFound: true,
+            barcode: "123",
+            brand: "Marka",
+            imageURL: imageURL,
+            categories: ["yogurts"]
+        )
+
+        #expect(result.product.barcode == "123")
+        #expect(result.product.brand == "Marka")
+        #expect(result.product.imageURL == imageURL)
+        #expect(result.product.categories == ["yogurts"])
     }
 
     @Test func ozelTerimIcerenMetindeEslesir() {

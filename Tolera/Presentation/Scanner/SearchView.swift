@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 struct SearchView: View {
@@ -109,6 +110,10 @@ struct SearchView: View {
             emptyProfileNotice
         } else {
             VStack(alignment: .leading, spacing: 20) {
+                if let saved = viewModel.savedIngredientsTextSource {
+                    savedSourceNotice(saved)
+                }
+
                 ProductResultView(result: result)
 
                 if FeatureFlags.alternativeSuggestionsEnabled,
@@ -117,6 +122,23 @@ struct SearchView: View {
                 } else if result.status == .unknown && !result.isCosmeticNotSupported {
                     unknownResultIngredientsScanNotice
                 }
+            }
+        }
+    }
+
+    private func savedSourceNotice(_ saved: SavedIngredientsText) -> some View {
+        HStack {
+            Text("Kaynak: daha önce okuduğun ambalaj (\(saved.savedAt.formatted(date: .abbreviated, time: .omitted)))")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
+            NavigationLink {
+                IngredientsScanView(viewModel: viewModel.makeIngredientsScanViewModel(barcode: viewModel.barcode))
+            } label: {
+                Text("Yeniden oku")
+                    .font(.caption2.bold())
             }
         }
     }
@@ -275,6 +297,10 @@ struct SearchView: View {
 #Preview {
     let productRepository = ProductRepositoryImpl()
     let checkProductUseCase = CheckProductUseCase()
+    let modelContainer = try! ModelContainer(
+        for: SavedIngredientsTextModel.self, ScanHistoryEntryModel.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
     SearchView(
         viewModel: SearchViewModel(
             productRepository: productRepository,
@@ -284,7 +310,8 @@ struct SearchView: View {
                 productRepository: productRepository,
                 checkProductUseCase: checkProductUseCase
             ),
-            textRecognitionService: VisionTextRecognitionService()
+            textRecognitionService: VisionTextRecognitionService(),
+            savedIngredientsTextRepository: SavedIngredientsTextRepositoryImpl(modelContainer: modelContainer)
         ),
         onGoToProfile: {}
     )

@@ -5,6 +5,7 @@
 //  Created by HAVVA on 28.10.2026.
 //
 
+import SwiftData
 import SwiftUI
 
 struct ContentView: View {
@@ -37,6 +38,10 @@ struct ContentView: View {
 #Preview {
     let productRepository = ProductRepositoryImpl()
     let checkProductUseCase = CheckProductUseCase()
+    let modelContainer = try! ModelContainer(
+        for: SavedIngredientsTextModel.self, ScanHistoryEntryModel.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
     ContentView(
         searchViewModel: SearchViewModel(
             productRepository: productRepository,
@@ -46,7 +51,8 @@ struct ContentView: View {
                 productRepository: productRepository,
                 checkProductUseCase: checkProductUseCase
             ),
-            textRecognitionService: VisionTextRecognitionService()
+            textRecognitionService: VisionTextRecognitionService(),
+            savedIngredientsTextRepository: SavedIngredientsTextRepositoryImpl(modelContainer: modelContainer)
         ),
         profileViewModel: ProfileViewModel(repository: UserProfileRepositoryImpl())
     )

@@ -1,10 +1,12 @@
 import Foundation
 
 /// OCR ile okunan (ve kullanıcı tarafından düzenlenebilen) ambalaj metnini analiz eder.
-/// Barkod/kategori bilgisi olmadığı için sadece metne dayalı, minimal bir `Product`
+/// Barkod/kategori bilgisi olmadığı durumda sadece metne dayalı, minimal bir `Product`
 /// üretir ve mevcut `CheckProductUseCase`'e devreder; bu yüzden aynı `ProductResultView`
-/// değişmeden kullanılabilir. Kategori olmadığından alternatif önerisi bu akışta
-/// hiç tetiklenmez (`FindAlternativesUseCase` boş kategoride arama yapmaz).
+/// değişmeden kullanılabilir. `barcode`/`brand`/`imageURL`/`categories` verilirse (barkod
+/// hafızasından — `SavedIngredientsTextRepository` — servis edilen bir sonuç için) bunlar
+/// `Product`'a taşınır; böylece hafızadan gelen sonuçlarda da alternatif önerisi (ileride)
+/// çalışabilir. Varsayılanlar önceki davranışı korur, mevcut çağıran taraflar değişmez.
 struct CheckIngredientsTextUseCase {
     private let checkProductUseCase: CheckProductUseCase
 
@@ -16,18 +18,22 @@ struct CheckIngredientsTextUseCase {
         rawText: String,
         userAllergens: Set<Allergen>,
         customTerms: [String] = [],
-        headingFound: Bool
+        headingFound: Bool,
+        barcode: String = "",
+        brand: String? = nil,
+        imageURL: URL? = nil,
+        categories: [String] = []
     ) -> ProductCheckResult {
         let cleanedText = OCRTextCleaner.clean(rawText)
         let product = Product(
-            barcode: "",
+            barcode: barcode,
             name: "Taranan Ürün",
-            brand: nil,
-            imageURL: nil,
+            brand: brand,
+            imageURL: imageURL,
             ingredientsText: cleanedText,
             allergens: [],
             traces: [],
-            categories: [],
+            categories: categories,
             type: .food
         )
         let result = checkProductUseCase.execute(

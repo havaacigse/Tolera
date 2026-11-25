@@ -12,24 +12,35 @@ final class SearchViewModel {
     var isLoadingAlternatives = false
     var alternativesLoadFailed = false
 
+    /// Sonuç barkod hafızasından (OFF'a gidilmeden) üretildiyse buraya yazılır; `SearchView`
+    /// bunu "Kaynak: daha önce okuduğun ambalaj (tarih)" + "Yeniden oku" olarak gösterir.
+    /// Hafızada kayıt yoksa (normal OFF akışı) nil'dir.
+    var savedIngredientsTextSource: SavedIngredientsText?
+
     private let productRepository: ProductRepository
     private let profileRepository: UserProfileRepository
     private let checkProductUseCase: CheckProductUseCase
     private let findAlternativesUseCase: FindAlternativesUseCase
     private let textRecognitionService: TextRecognitionService
+    private let savedIngredientsTextRepository: SavedIngredientsTextRepository
+    private let checkIngredientsTextUseCase: CheckIngredientsTextUseCase
 
     init(
         productRepository: ProductRepository,
         profileRepository: UserProfileRepository,
         checkProductUseCase: CheckProductUseCase,
         findAlternativesUseCase: FindAlternativesUseCase,
-        textRecognitionService: TextRecognitionService
+        textRecognitionService: TextRecognitionService,
+        savedIngredientsTextRepository: SavedIngredientsTextRepository,
+        checkIngredientsTextUseCase: CheckIngredientsTextUseCase = CheckIngredientsTextUseCase()
     ) {
         self.productRepository = productRepository
         self.profileRepository = profileRepository
         self.checkProductUseCase = checkProductUseCase
         self.findAlternativesUseCase = findAlternativesUseCase
         self.textRecognitionService = textRecognitionService
+        self.savedIngredientsTextRepository = savedIngredientsTextRepository
+        self.checkIngredientsTextUseCase = checkIngredientsTextUseCase
     }
 
     func handleScannedBarcode(_ code: String) {
@@ -44,12 +55,32 @@ final class SearchViewModel {
         isLoading = true
         alternatives = nil
         alternativesLoadFailed = false
+        savedIngredientsTextSource = nil
+
+        let userAllergens = profileRepository.loadAllergens()
+        let customTerms = profileRepository.loadCustomTerms()
+
+        // Barkod hafızasında (daha önce OCR ile okunup kaydedilmiş) bu barkod için kayıt
+        // varsa, OFF'a hiç gidilmez; sonuç doğrudan o metinden üretilir.
+        if let saved = savedIngredientsTextRepository.find(barcode: barcode) {
+            savedIngredientsTextSource = saved
+            result = checkIngredientsTextUseCase.execute(
+                rawText: saved.ingredientsText,
+                userAllergens: userAllergens,
+                customTerms: customTerms,
+                headingFound: saved.headingFound,
+                barcode: saved.barcode,
+                brand: saved.brand,
+                imageURL: saved.imageURL,
+                categories: saved.categories
+            )
+            isLoading = false
+            return
+        }
 
         Task {
             do {
                 let product = try await productRepository.product(barcode: barcode)
-                let userAllergens = profileRepository.loadAllergens()
-                let customTerms = profileRepository.loadCustomTerms()
                 let checkResult = checkProductUseCase.execute(
                     product: product,
                     userAllergens: userAllergens,
@@ -111,10 +142,13 @@ final class SearchViewModel {
         )
     }
 
-    func makeIngredientsScanViewModel() -> IngredientsScanViewModel {
+    /// `barcode` verilirse (ör. "Yeniden oku"), OCR ekranı bu barkodu bilir — ileride
+    /// o metni aynı barkodla hafızaya kaydedebilsin diye (bkz. Aşama 3, Adım C).
+    func makeIngredientsScanViewModel(barcode: String? = nil) -> IngredientsScanViewModel {
         IngredientsScanViewModel(
             textRecognitionService: textRecognitionService,
-            profileRepository: profileRepository
+            profileRepository: profileRepository,
+            barcode: barcode
         )
     }
 
