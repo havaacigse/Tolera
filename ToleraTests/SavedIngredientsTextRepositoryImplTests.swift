@@ -3,16 +3,20 @@ import SwiftData
 import Testing
 @testable import Tolera
 
+@Suite(.serialized)
 @MainActor
 struct SavedIngredientsTextRepositoryImplTests {
     // Her çağrı kendi, benzersiz adlı in-memory container'ını kurar; aynı process
     // içinde aynı @Model şemasıyla art arda container oluşturmak isim paylaşırsa
     // çökebiliyor, bu yüzden her testin kendi izole deposu olsun diye benzersiz isim verilir.
+    // `container` burada yerel bir değişken olsa da artık güvenli: repository artık
+    // container'ın kendisini saklıyor (bkz. SavedIngredientsTextRepositoryImpl), bu
+    // fonksiyon dönünce `container`'ı tutan tek şey repository'nin kendisi olur.
     private func makeRepository() -> SavedIngredientsTextRepositoryImpl {
         let schema = Schema([SavedIngredientsTextModel.self, ScanHistoryEntryModel.self])
         let configuration = ModelConfiguration(UUID().uuidString, schema: schema, isStoredInMemoryOnly: true)
         let container = try! ModelContainer(for: schema, configurations: [configuration])
-        return SavedIngredientsTextRepositoryImpl(modelContext: container.mainContext)
+        return SavedIngredientsTextRepositoryImpl(modelContainer: container)
     }
 
     private func makeRecord(barcode: String = "123", ingredientsText: String = "su, şeker") -> SavedIngredientsText {
@@ -74,5 +78,24 @@ struct SavedIngredientsTextRepositoryImplTests {
         repository.save(makeRecord(barcode: "222"))
 
         #expect(repository.all().count == 2)
+    }
+
+    // Regresyon testi: container'ı sadece yerel bir değişkende oluşturup repository'ye
+    // veren bir yardımcı fonksiyon — tam olarak önceki EXC_BREAKPOINT çökmesine yol açan
+    // kalıp. Repository artık container'ı kendisi sakladığından (çağıran tarafın ayrıca
+    // canlı tutmasına gerek kalmadan), fonksiyon bittikten sonra da save/fetch çalışmalı.
+    @Test("Container'ı oluşturan yerel değişken scope dışına çıksa bile repository çalışmayı sürdürür")
+    func repositoryOutlivesLocalContainerVariable() {
+        func makeRepositoryFromLocalContainer() -> SavedIngredientsTextRepositoryImpl {
+            let schema = Schema([SavedIngredientsTextModel.self, ScanHistoryEntryModel.self])
+            let configuration = ModelConfiguration(UUID().uuidString, schema: schema, isStoredInMemoryOnly: true)
+            let localContainer = try! ModelContainer(for: schema, configurations: [configuration])
+            return SavedIngredientsTextRepositoryImpl(modelContainer: localContainer)
+        }
+
+        let repository = makeRepositoryFromLocalContainer()
+        repository.save(makeRecord())
+
+        #expect(repository.find(barcode: "123")?.ingredientsText == "su, şeker")
     }
 }

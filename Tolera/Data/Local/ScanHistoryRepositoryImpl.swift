@@ -1,11 +1,18 @@
 import Foundation
 import SwiftData
 
+/// `ModelContext` yerine `ModelContainer`'ın kendisi saklanır — bkz.
+/// `SavedIngredientsTextRepositoryImpl`'deki açıklama (aynı EXC_BREAKPOINT çökmesinin
+/// aynı kök sebebi). `mainContext` erişimi @MainActor gerektirdiğinden sınıf da
+/// @MainActor işaretli.
+@MainActor
 final class ScanHistoryRepositoryImpl: ScanHistoryRepository {
+    private let modelContainer: ModelContainer
     private let modelContext: ModelContext
 
-    init(modelContext: ModelContext) {
-        self.modelContext = modelContext
+    init(modelContainer: ModelContainer) {
+        self.modelContainer = modelContainer
+        self.modelContext = modelContainer.mainContext
     }
 
     func save(_ entry: ScanHistoryEntry) {

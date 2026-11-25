@@ -3,16 +3,20 @@ import SwiftData
 import Testing
 @testable import Tolera
 
+@Suite(.serialized)
 @MainActor
 struct ScanHistoryRepositoryImplTests {
     // Her çağrı kendi, benzersiz adlı in-memory container'ını kurar; aynı process
     // içinde aynı @Model şemasıyla art arda container oluşturmak isim paylaşırsa
     // çökebiliyor, bu yüzden her testin kendi izole deposu olsun diye benzersiz isim verilir.
+    // `container` burada yerel bir değişken olsa da artık güvenli: repository artık
+    // container'ın kendisini saklıyor (bkz. ScanHistoryRepositoryImpl), bu fonksiyon
+    // dönünce `container`'ı tutan tek şey repository'nin kendisi olur.
     private func makeRepository() -> ScanHistoryRepositoryImpl {
         let schema = Schema([SavedIngredientsTextModel.self, ScanHistoryEntryModel.self])
         let configuration = ModelConfiguration(UUID().uuidString, schema: schema, isStoredInMemoryOnly: true)
         let container = try! ModelContainer(for: schema, configurations: [configuration])
-        return ScanHistoryRepositoryImpl(modelContext: container.mainContext)
+        return ScanHistoryRepositoryImpl(modelContainer: container)
     }
 
     private func makeEntry(
@@ -100,5 +104,24 @@ struct ScanHistoryRepositoryImplTests {
         repository.save(makeEntry(source: .ocrPhoto))
 
         #expect(repository.all().first?.source == .ocrPhoto)
+    }
+
+    // Regresyon testi: container'ı sadece yerel bir değişkende oluşturup repository'ye
+    // veren bir yardımcı fonksiyon — tam olarak önceki EXC_BREAKPOINT çökmesine yol açan
+    // kalıp. Repository artık container'ı kendisi sakladığından, fonksiyon bittikten
+    // sonra da save/all çalışmalı.
+    @Test("Container'ı oluşturan yerel değişken scope dışına çıksa bile repository çalışmayı sürdürür")
+    func repositoryOutlivesLocalContainerVariable() {
+        func makeRepositoryFromLocalContainer() -> ScanHistoryRepositoryImpl {
+            let schema = Schema([SavedIngredientsTextModel.self, ScanHistoryEntryModel.self])
+            let configuration = ModelConfiguration(UUID().uuidString, schema: schema, isStoredInMemoryOnly: true)
+            let localContainer = try! ModelContainer(for: schema, configurations: [configuration])
+            return ScanHistoryRepositoryImpl(modelContainer: localContainer)
+        }
+
+        let repository = makeRepositoryFromLocalContainer()
+        repository.save(makeEntry())
+
+        #expect(repository.all().first?.productName == "Test Ürün")
     }
 }

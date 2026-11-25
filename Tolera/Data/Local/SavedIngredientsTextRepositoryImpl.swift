@@ -1,11 +1,20 @@
 import Foundation
 import SwiftData
 
+/// `ModelContext` yerine `ModelContainer`'ın kendisi saklanır: container'ı sadece
+/// çağıran tarafta yerel bir değişkende tutmak yetersizdi (scope dışına çıkınca ARC
+/// serbest bırakabiliyor, context ise onu canlı tutmuyor — bu, testlerde aralıklı
+/// EXC_BREAKPOINT çökmelerine yol açtı). Container repository ile aynı ömre sahip
+/// olduğundan artık çağıran tarafın bunu ayrıca canlı tutmasına gerek yok.
+/// `mainContext` erişimi @MainActor gerektirdiğinden sınıf da @MainActor işaretli.
+@MainActor
 final class SavedIngredientsTextRepositoryImpl: SavedIngredientsTextRepository {
+    private let modelContainer: ModelContainer
     private let modelContext: ModelContext
 
-    init(modelContext: ModelContext) {
-        self.modelContext = modelContext
+    init(modelContainer: ModelContainer) {
+        self.modelContainer = modelContainer
+        self.modelContext = modelContainer.mainContext
     }
 
     func find(barcode: String) -> SavedIngredientsText? {
