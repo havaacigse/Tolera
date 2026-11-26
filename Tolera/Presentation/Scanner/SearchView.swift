@@ -18,7 +18,7 @@ struct SearchView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     scanSection
                     manualEntrySection
-                    ingredientsScanLink
+                    ingredientsScanLink()
 
                     if viewModel.isLoading {
                         ProgressView()
@@ -38,6 +38,21 @@ struct SearchView: View {
             .navigationTitle("Ara")
             .navigationDestination(for: Product.self) { product in
                 ProductDetailView(viewModel: viewModel.makeDetailViewModel(for: product))
+            }
+            .navigationDestination(item: Binding(
+                get: { viewModel.pendingIngredientsScanContext },
+                set: { newValue in
+                    // SwiftUI geri dönüldüğünde bunu nil ile çağırır; bu, bekleyen "ara"
+                    // unknown/bulunamadı sonucunun artık kesinleştiği (fotoğraf çekilmediği)
+                    // anlamına gelir (bkz. kural 3).
+                    if newValue == nil {
+                        viewModel.ingredientsScanDismissedWithoutCompleting()
+                    } else {
+                        viewModel.pendingIngredientsScanContext = newValue
+                    }
+                }
+            )) { context in
+                IngredientsScanView(viewModel: viewModel.makeIngredientsScanViewModel(context: context))
             }
         }
         .sheet(isPresented: $isShowingScanner) {
@@ -120,7 +135,7 @@ struct SearchView: View {
                    result.status == .unsafe || result.status == .caution {
                     alternativesSection
                 } else if result.status == .unknown && !result.isCosmeticNotSupported {
-                    unknownResultIngredientsScanNotice
+                    unknownResultIngredientsScanNotice(for: result)
                 }
             }
         }
@@ -135,7 +150,15 @@ struct SearchView: View {
             Spacer()
 
             NavigationLink {
-                IngredientsScanView(viewModel: viewModel.makeIngredientsScanViewModel(barcode: viewModel.barcode))
+                IngredientsScanView(viewModel: viewModel.makeIngredientsScanViewModel(
+                    context: IngredientsScanContext(
+                        barcode: saved.barcode,
+                        productName: saved.productName,
+                        brand: saved.brand,
+                        imageURL: saved.imageURL,
+                        categories: saved.categories
+                    )
+                ))
             } label: {
                 Text("Yeniden oku")
                     .font(.caption2.bold())
@@ -143,18 +166,24 @@ struct SearchView: View {
         }
     }
 
-    private var unknownResultIngredientsScanNotice: some View {
+    private func unknownResultIngredientsScanNotice(for result: ProductCheckResult) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Bu ürün için içindekiler bilgisi yok. Ambalaj fotoğrafından kontrol edebilirsin.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-            ingredientsScanLink
+            ingredientsScanLink(context: IngredientsScanContext(
+                barcode: result.product.barcode,
+                productName: result.product.name,
+                brand: result.product.brand,
+                imageURL: result.product.imageURL,
+                categories: result.product.categories
+            ))
         }
     }
 
-    private var ingredientsScanLink: some View {
+    private func ingredientsScanLink(context: IngredientsScanContext? = nil) -> some View {
         NavigationLink {
-            IngredientsScanView(viewModel: viewModel.makeIngredientsScanViewModel())
+            IngredientsScanView(viewModel: viewModel.makeIngredientsScanViewModel(context: context))
         } label: {
             Label("İçindekileri Fotoğrafla", systemImage: "camera.viewfinder")
                 .font(.footnote)
@@ -283,7 +312,13 @@ struct SearchView: View {
                 }
                 .buttonStyle(.bordered)
 
-                ingredientsScanLink
+                ingredientsScanLink(context: IngredientsScanContext(
+                    barcode: viewModel.barcode,
+                    productName: nil,
+                    brand: nil,
+                    imageURL: nil,
+                    categories: []
+                ))
             }
         }
         .frame(maxWidth: .infinity)
@@ -311,7 +346,8 @@ struct SearchView: View {
                 checkProductUseCase: checkProductUseCase
             ),
             textRecognitionService: VisionTextRecognitionService(),
-            savedIngredientsTextRepository: SavedIngredientsTextRepositoryImpl(modelContainer: modelContainer)
+            savedIngredientsTextRepository: SavedIngredientsTextRepositoryImpl(modelContainer: modelContainer),
+            scanHistoryRepository: ScanHistoryRepositoryImpl(modelContainer: modelContainer)
         ),
         onGoToProfile: {}
     )

@@ -1,4 +1,5 @@
 import PhotosUI
+import SwiftData
 import SwiftUI
 
 /// İçindekiler fotoğrafından kontrol ekranı: fotoğraf seç/çek → okunan metni
@@ -16,6 +17,11 @@ struct IngredientsScanView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                if let productName = viewModel.productName {
+                    Text(productName)
+                        .font(.headline)
+                }
+
                 sourceButtons
 
                 if viewModel.isRecognizing {
@@ -147,11 +153,17 @@ struct IngredientsScanView: View {
 }
 
 #Preview {
+    let modelContainer = try! ModelContainer(
+        for: SavedIngredientsTextModel.self, ScanHistoryEntryModel.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
     NavigationStack {
         IngredientsScanView(
             viewModel: IngredientsScanViewModel(
                 textRecognitionService: VisionTextRecognitionService(),
-                profileRepository: UserProfileRepositoryImpl()
+                profileRepository: UserProfileRepositoryImpl(),
+                savedIngredientsTextRepository: SavedIngredientsTextRepositoryImpl(modelContainer: modelContainer),
+                scanHistoryRepository: ScanHistoryRepositoryImpl(modelContainer: modelContainer)
             )
         )
     }

@@ -1,4 +1,16 @@
+import Foundation
 import Observation
+
+/// Otomatik (veya "Yeniden oku" ile) OCR ekranına geçişte taşınan bağlam. `productName`/
+/// `brand`/`imageURL`/`categories` ürün OFF'ta bulunup sadece içindekiler eksikse bilinir;
+/// ürün hiç bulunamadıysa sadece `barcode` dolu olur.
+struct IngredientsScanContext: Hashable {
+    let barcode: String
+    let productName: String?
+    let brand: String?
+    let imageURL: URL?
+    let categories: [String]
+}
 
 @Observable
 final class SearchViewModel {
@@ -17,12 +29,26 @@ final class SearchViewModel {
     /// Hafızada kayıt yoksa (normal OFF akışı) nil'dir.
     var savedIngredientsTextSource: SavedIngredientsText?
 
+    /// Dolu olduğunda `SearchView` otomatik olarak OCR ekranına geçer (bkz.
+    /// `IngredientsScanRedirectPolicy`). Kullanıcı o ekrandan fotoğraf çekmeden geri dönerse
+    /// SwiftUI'nin `navigationDestination(item:)` mekanizması bunu kendiliğinden nil'e
+    /// çevirir; `search()` dışında hiçbir yer bunu tekrar dolduramaz, bu yüzden bir arama
+    /// için en fazla bir kez tetiklenir.
+    var pendingIngredientsScanContext: IngredientsScanContext?
+
+    /// Yönlendirme tetiklendiğinde geçmişe HENÜZ kaydedilmemiş, "ara" unknown/bulunamadı
+    /// sonucunu kaydedecek kapanış. Kullanıcı OCR'dan fotoğraf çekmeden vazgeçerse
+    /// (`ingredientsScanDismissedWithoutCompleting`) bu çalışır; OCR başarıyla bir sonuç
+    /// üretirse (`ingredientsScanDidProduceResult`) bunun yerine o kaydedilir ve bu iptal edilir.
+    private var deferredHistoryLogAction: (() -> Void)?
+
     private let productRepository: ProductRepository
     private let profileRepository: UserProfileRepository
     private let checkProductUseCase: CheckProductUseCase
     private let findAlternativesUseCase: FindAlternativesUseCase
     private let textRecognitionService: TextRecognitionService
     private let savedIngredientsTextRepository: SavedIngredientsTextRepository
+    private let scanHistoryRepository: ScanHistoryRepository
     private let checkIngredientsTextUseCase: CheckIngredientsTextUseCase
 
     init(
@@ -32,6 +58,7 @@ final class SearchViewModel {
         findAlternativesUseCase: FindAlternativesUseCase,
         textRecognitionService: TextRecognitionService,
         savedIngredientsTextRepository: SavedIngredientsTextRepository,
+        scanHistoryRepository: ScanHistoryRepository,
         checkIngredientsTextUseCase: CheckIngredientsTextUseCase = CheckIngredientsTextUseCase()
     ) {
         self.productRepository = productRepository
@@ -40,6 +67,7 @@ final class SearchViewModel {
         self.findAlternativesUseCase = findAlternativesUseCase
         self.textRecognitionService = textRecognitionService
         self.savedIngredientsTextRepository = savedIngredientsTextRepository
+        self.scanHistoryRepository = scanHistoryRepository
         self.checkIngredientsTextUseCase = checkIngredientsTextUseCase
     }
 
@@ -56,15 +84,18 @@ final class SearchViewModel {
         alternatives = nil
         alternativesLoadFailed = false
         savedIngredientsTextSource = nil
+        pendingIngredientsScanContext = nil
+        deferredHistoryLogAction = nil
 
         let userAllergens = profileRepository.loadAllergens()
         let customTerms = profileRepository.loadCustomTerms()
+        let isProfileEmpty = userAllergens.isEmpty && customTerms.isEmpty
 
         // Barkod hafızasında (daha önce OCR ile okunup kaydedilmiş) bu barkod için kayıt
         // varsa, OFF'a hiç gidilmez; sonuç doğrudan o metinden üretilir.
         if let saved = savedIngredientsTextRepository.find(barcode: barcode) {
             savedIngredientsTextSource = saved
-            result = checkIngredientsTextUseCase.execute(
+            let checkResult = checkIngredientsTextUseCase.execute(
                 rawText: saved.ingredientsText,
                 userAllergens: userAllergens,
                 customTerms: customTerms,
@@ -74,7 +105,11 @@ final class SearchViewModel {
                 imageURL: saved.imageURL,
                 categories: saved.categories
             )
+            result = checkResult
             isLoading = false
+            // Hafıza yolu yönlendirmeye hiç girmez (Adım B'nin kapsamı sadece OFF yolu);
+            // bu yüzden sonuç her zaman kesindir ve hemen kaydedilir.
+            logToHistory(product: checkResult.product, result: checkResult, source: .ocrPhoto)
             return
         }
 
@@ -89,18 +124,61 @@ final class SearchViewModel {
                 result = checkResult
                 isLoading = false
 
-                if FeatureFlags.alternativeSuggestionsEnabled,
-                   checkResult.status == .unsafe || checkResult.status == .caution {
-                    await fetchAlternatives(
-                        for: product,
-                        status: checkResult.status,
-                        userAllergens: userAllergens,
-                        customTerms: customTerms
+                if IngredientsScanRedirectPolicy.shouldRedirectToIngredientsScan(
+                    isProductNotFound: false,
+                    result: checkResult,
+                    isProfileEmpty: isProfileEmpty
+                ) {
+                    pendingIngredientsScanContext = IngredientsScanContext(
+                        barcode: product.barcode,
+                        productName: product.name,
+                        brand: product.brand,
+                        imageURL: product.imageURL,
+                        categories: product.categories
                     )
+                    // "unknown" ara sonuçtur: OCR'a yönlendirilirken henüz kaydedilmez.
+                    // Kullanıcı fotoğraf çekmeden vazgeçerse bu, o anda son sonuç olur.
+                    deferredHistoryLogAction = { [weak self] in
+                        self?.logToHistory(product: product, result: checkResult, source: .off)
+                    }
+                } else {
+                    logToHistory(product: product, result: checkResult, source: .off)
+
+                    if FeatureFlags.alternativeSuggestionsEnabled,
+                       checkResult.status == .unsafe || checkResult.status == .caution {
+                        await fetchAlternatives(
+                            for: product,
+                            status: checkResult.status,
+                            userAllergens: userAllergens,
+                            customTerms: customTerms
+                        )
+                    }
                 }
                 return
             } catch ProductError.notFound {
                 isProductNotFound = true
+                isLoading = false
+
+                if IngredientsScanRedirectPolicy.shouldRedirectToIngredientsScan(
+                    isProductNotFound: true,
+                    result: nil,
+                    isProfileEmpty: isProfileEmpty
+                ) {
+                    let notFoundBarcode = self.barcode
+                    pendingIngredientsScanContext = IngredientsScanContext(
+                        barcode: notFoundBarcode,
+                        productName: nil,
+                        brand: nil,
+                        imageURL: nil,
+                        categories: []
+                    )
+                    deferredHistoryLogAction = { [weak self] in
+                        self?.logNotFoundToHistory(barcode: notFoundBarcode)
+                    }
+                }
+                // Profil boşsa (redirect policy'nin tek engeli) hiçbir şey kaydedilmez —
+                // anlamlı bir alerjen bilgisi üretilmedi.
+                return
             } catch let error as ProductError {
                 errorMessage = message(for: error)
             } catch {
@@ -108,6 +186,56 @@ final class SearchViewModel {
             }
             isLoading = false
         }
+    }
+
+    /// Kullanıcı otomatik açılan OCR ekranından fotoğraf çekmeden geri döndüğünde `SearchView`
+    /// tarafından çağrılır: bekleyen "ara" sonucu artık kesinleşmiş sayılır ve kaydedilir.
+    func ingredientsScanDismissedWithoutCompleting() {
+        pendingIngredientsScanContext = nil
+        deferredHistoryLogAction?()
+        deferredHistoryLogAction = nil
+    }
+
+    /// OCR ekranı ("Kontrol et") başarıyla bir sonuç ürettiğinde çağrılır: o sonuç kendi
+    /// kaydını zaten yaptığından (bkz. `IngredientsScanViewModel.checkText`), bekleyen
+    /// "ara" sonucunun ARTIK kaydedilmemesi gerekir — yoksa aynı tarama için iki kayıt oluşur.
+    private func ingredientsScanDidProduceResult() {
+        deferredHistoryLogAction = nil
+    }
+
+    private func logToHistory(product: Product, result: ProductCheckResult, source: ScanSource) {
+        guard !result.isProfileEmpty else { return }
+        scanHistoryRepository.save(ScanHistoryEntry(
+            barcode: product.barcode.isEmpty ? nil : product.barcode,
+            productName: product.name,
+            brand: product.brand,
+            imageURL: product.imageURL,
+            ingredientsText: product.ingredientsText,
+            allergens: product.allergens,
+            traces: product.traces,
+            categories: product.categories,
+            type: product.type,
+            headingFound: true,
+            source: source,
+            snapshotStatus: result.status
+        ))
+    }
+
+    private func logNotFoundToHistory(barcode: String) {
+        scanHistoryRepository.save(ScanHistoryEntry(
+            barcode: barcode.isEmpty ? nil : barcode,
+            productName: "Bulunamayan Ürün",
+            brand: nil,
+            imageURL: nil,
+            ingredientsText: nil,
+            allergens: [],
+            traces: [],
+            categories: [],
+            type: .food,
+            headingFound: true,
+            source: .off,
+            snapshotStatus: .unknown
+        ))
     }
 
     /// Alternatif bulunamama (boş liste) ile arama başarısız olma (ağ hatası) durumlarını
@@ -142,13 +270,17 @@ final class SearchViewModel {
         )
     }
 
-    /// `barcode` verilirse (ör. "Yeniden oku"), OCR ekranı bu barkodu bilir — ileride
-    /// o metni aynı barkodla hafızaya kaydedebilsin diye (bkz. Aşama 3, Adım C).
-    func makeIngredientsScanViewModel(barcode: String? = nil) -> IngredientsScanViewModel {
+    /// `context` verilirse (otomatik yönlendirme ya da "Yeniden oku"), OCR ekranı barkodu
+    /// ve bilinen ürün bilgisini taşır — üstte ürün adını gösterebilsin, okunan metni aynı
+    /// barkodla hafızaya kaydedebilsin diye (bkz. Aşama 3, Adım C).
+    func makeIngredientsScanViewModel(context: IngredientsScanContext? = nil) -> IngredientsScanViewModel {
         IngredientsScanViewModel(
             textRecognitionService: textRecognitionService,
             profileRepository: profileRepository,
-            barcode: barcode
+            savedIngredientsTextRepository: savedIngredientsTextRepository,
+            scanHistoryRepository: scanHistoryRepository,
+            context: context,
+            onSuccessfulCheck: { [weak self] in self?.ingredientsScanDidProduceResult() }
         )
     }
 

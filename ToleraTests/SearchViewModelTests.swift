@@ -34,6 +34,15 @@ struct SearchViewModelTests {
         func all() -> [SavedIngredientsText] { Array(storage.values) }
     }
 
+    private final class MockScanHistoryRepository: ScanHistoryRepository, @unchecked Sendable {
+        private(set) var savedEntries: [ScanHistoryEntry] = []
+
+        func save(_ entry: ScanHistoryEntry) { savedEntries.append(entry) }
+        func all() -> [ScanHistoryEntry] { savedEntries }
+        func delete(id: UUID) {}
+        func deleteAll() { savedEntries.removeAll() }
+    }
+
     private final class MockUserProfileRepository: UserProfileRepository, @unchecked Sendable {
         var allergens: Set<Allergen> = [.milk]
         var customTerms: [String] = []
@@ -68,6 +77,7 @@ struct SearchViewModelTests {
     private func makeViewModel(
         productRepository: MockProductRepository,
         savedIngredientsTextRepository: MockSavedIngredientsTextRepository,
+        scanHistoryRepository: MockScanHistoryRepository = MockScanHistoryRepository(),
         profileRepository: MockUserProfileRepository = MockUserProfileRepository()
     ) -> SearchViewModel {
         let checkProductUseCase = CheckProductUseCase()
@@ -80,7 +90,8 @@ struct SearchViewModelTests {
                 checkProductUseCase: checkProductUseCase
             ),
             textRecognitionService: StubTextRecognitionService(),
-            savedIngredientsTextRepository: savedIngredientsTextRepository
+            savedIngredientsTextRepository: savedIngredientsTextRepository,
+            scanHistoryRepository: scanHistoryRepository
         )
     }
 
@@ -147,6 +158,263 @@ struct SearchViewModelTests {
         #expect(productRepository.productCallCount == 1)
         #expect(viewModel.savedIngredientsTextSource == nil)
         #expect(viewModel.result?.product.name == "OFF Ürünü")
+    }
+
+    // MARK: - Adım B: otomatik OCR yönlendirmesi
+
+    @Test("Ürün bulunamadığında (profil boş değilken) OCR ekranına otomatik yönlendirme tetiklenir")
+    func productNotFoundTriggersAutoRedirect() async throws {
+        let productRepository = MockProductRepository()
+        let viewModel = makeViewModel(
+            productRepository: productRepository,
+            savedIngredientsTextRepository: MockSavedIngredientsTextRepository()
+        )
+        viewModel.barcode = "555"
+
+        viewModel.search()
+        try await waitUntil { viewModel.isProductNotFound }
+
+        #expect(viewModel.pendingIngredientsScanContext?.barcode == "555")
+        #expect(viewModel.pendingIngredientsScanContext?.productName == nil)
+    }
+
+    @Test("Ürün bulundu ama içindekiler metni yoksa, ürün bilgisiyle birlikte OCR'a yönlendirilir")
+    func missingIngredientsTextTriggersAutoRedirectWithProductInfo() async throws {
+        let productRepository = MockProductRepository()
+        productRepository.productToReturn = Product(
+            barcode: "777", name: "Boş Ürün", brand: "Marka X",
+            imageURL: URL(string: "https://example.com/x.jpg"),
+            ingredientsText: nil, allergens: [], traces: [], categories: ["snacks"], type: .food
+        )
+        let viewModel = makeViewModel(
+            productRepository: productRepository,
+            savedIngredientsTextRepository: MockSavedIngredientsTextRepository()
+        )
+        viewModel.barcode = "777"
+
+        viewModel.search()
+        try await waitUntil { viewModel.pendingIngredientsScanContext != nil }
+
+        #expect(viewModel.pendingIngredientsScanContext?.barcode == "777")
+        #expect(viewModel.pendingIngredientsScanContext?.productName == "Boş Ürün")
+        #expect(viewModel.pendingIngredientsScanContext?.brand == "Marka X")
+        #expect(viewModel.pendingIngredientsScanContext?.categories == ["snacks"])
+    }
+
+    @Test("Dil anlaşılamadığı için sonuç unknown dönerse de OCR'a yönlendirilir")
+    func unrecognizedLanguageTriggersAutoRedirect() async throws {
+        let productRepository = MockProductRepository()
+        productRepository.productToReturn = Product(
+            barcode: "666", name: "Yabancı Etiket", brand: nil, imageURL: nil,
+            ingredientsText: "Этот продукт содержит пшеницу", allergens: [], traces: [], categories: [], type: .food
+        )
+        let viewModel = makeViewModel(
+            productRepository: productRepository,
+            savedIngredientsTextRepository: MockSavedIngredientsTextRepository()
+        )
+        viewModel.barcode = "666"
+
+        viewModel.search()
+        try await waitUntil { viewModel.pendingIngredientsScanContext != nil }
+
+        #expect(viewModel.pendingIngredientsScanContext?.barcode == "666")
+    }
+
+    @Test("Kozmetik üründe (unknown olsa da) OCR'a otomatik yönlendirme yapılmaz")
+    func cosmeticProductDoesNotTriggerAutoRedirect() async throws {
+        let productRepository = MockProductRepository()
+        productRepository.productToReturn = Product(
+            barcode: "888", name: "Kozmetik", brand: nil, imageURL: nil,
+            ingredientsText: nil, allergens: [], traces: [], categories: [], type: .cosmetic
+        )
+        let viewModel = makeViewModel(
+            productRepository: productRepository,
+            savedIngredientsTextRepository: MockSavedIngredientsTextRepository()
+        )
+        viewModel.barcode = "888"
+
+        viewModel.search()
+        try await waitUntil { viewModel.result != nil }
+
+        #expect(viewModel.pendingIngredientsScanContext == nil)
+    }
+
+    @Test("Profil boşsa ürün bulunamasa da OCR'a otomatik yönlendirme yapılmaz")
+    func emptyProfileDoesNotTriggerAutoRedirectEvenWhenNotFound() async throws {
+        let productRepository = MockProductRepository()
+        let profileRepository = MockUserProfileRepository()
+        profileRepository.allergens = []
+        profileRepository.customTerms = []
+        let viewModel = makeViewModel(
+            productRepository: productRepository,
+            savedIngredientsTextRepository: MockSavedIngredientsTextRepository(),
+            profileRepository: profileRepository
+        )
+        viewModel.barcode = "999"
+
+        viewModel.search()
+        try await waitUntil { viewModel.isProductNotFound }
+
+        #expect(viewModel.pendingIngredientsScanContext == nil)
+    }
+
+    @Test("Normal (metin var, dil anlaşılan) sonuçta OCR'a otomatik yönlendirme yapılmaz")
+    func normalResultDoesNotTriggerAutoRedirect() async throws {
+        let productRepository = MockProductRepository()
+        productRepository.productToReturn = Product(
+            barcode: "111", name: "Normal Ürün", brand: nil, imageURL: nil,
+            ingredientsText: "su, şeker", allergens: [], traces: [], categories: [], type: .food
+        )
+        let viewModel = makeViewModel(
+            productRepository: productRepository,
+            savedIngredientsTextRepository: MockSavedIngredientsTextRepository()
+        )
+        viewModel.barcode = "111"
+
+        viewModel.search()
+        try await waitUntil { viewModel.result != nil }
+
+        #expect(viewModel.pendingIngredientsScanContext == nil)
+        #expect(viewModel.result?.status == .safe)
+    }
+
+    @Test("Her search() çağrısı yönlendirme bağlamını önce sıfırlar: bir önceki aramadan kalan yönlendirme yeni aramaya taşınmaz")
+    func newSearchClearsPreviousRedirectContext() async throws {
+        let productRepository = MockProductRepository()
+        let viewModel = makeViewModel(
+            productRepository: productRepository,
+            savedIngredientsTextRepository: MockSavedIngredientsTextRepository()
+        )
+        viewModel.barcode = "555"
+        viewModel.search()
+        try await waitUntil { viewModel.pendingIngredientsScanContext != nil }
+
+        // Kullanıcı OCR ekranından fotoğraf çekmeden geri döndü (SwiftUI binding'i nil'e çevirir).
+        viewModel.pendingIngredientsScanContext = nil
+
+        // Normal sonuç veren FARKLI bir arama: bu da kendi kararını baştan verir.
+        productRepository.productToReturn = Product(
+            barcode: "222", name: "Başka Ürün", brand: nil, imageURL: nil,
+            ingredientsText: "su, şeker", allergens: [], traces: [], categories: [], type: .food
+        )
+        viewModel.barcode = "222"
+        viewModel.search()
+        try await waitUntil { viewModel.result != nil }
+
+        #expect(viewModel.pendingIngredientsScanContext == nil)
+    }
+
+    // MARK: - Adım D: tarama geçmişi kaydı
+
+    @Test("Barkod hafızasından üretilen sonuç hemen geçmişe kaydedilir (kaynak: ocrPhoto)")
+    func savedRecordResultIsLoggedToHistoryImmediately() async throws {
+        let saved = makeSavedRecord()
+        let scanHistoryRepository = MockScanHistoryRepository()
+        let viewModel = makeViewModel(
+            productRepository: MockProductRepository(),
+            savedIngredientsTextRepository: MockSavedIngredientsTextRepository(preloaded: [saved]),
+            scanHistoryRepository: scanHistoryRepository
+        )
+        viewModel.barcode = "123"
+
+        viewModel.search()
+
+        #expect(scanHistoryRepository.savedEntries.count == 1)
+        #expect(scanHistoryRepository.savedEntries.first?.source == .ocrPhoto)
+        #expect(scanHistoryRepository.savedEntries.first?.barcode == "123")
+    }
+
+    @Test("Yönlendirme tetiklenmeyen normal OFF sonucu hemen geçmişe kaydedilir (kaynak: off)")
+    func normalOffResultIsLoggedToHistoryImmediately() async throws {
+        let productRepository = MockProductRepository()
+        productRepository.productToReturn = Product(
+            barcode: "111", name: "Normal Ürün", brand: nil, imageURL: nil,
+            ingredientsText: "su, şeker", allergens: [], traces: [], categories: [], type: .food
+        )
+        let scanHistoryRepository = MockScanHistoryRepository()
+        let viewModel = makeViewModel(
+            productRepository: productRepository,
+            savedIngredientsTextRepository: MockSavedIngredientsTextRepository(),
+            scanHistoryRepository: scanHistoryRepository
+        )
+        viewModel.barcode = "111"
+
+        viewModel.search()
+        try await waitUntil { viewModel.result != nil }
+
+        #expect(scanHistoryRepository.savedEntries.count == 1)
+        #expect(scanHistoryRepository.savedEntries.first?.source == .off)
+        #expect(scanHistoryRepository.savedEntries.first?.snapshotStatus == .safe)
+    }
+
+    @Test("OCR'a yönlendirilen 'ara' unknown sonucu, kullanıcı henüz vazgeçmediyse geçmişe HENÜZ kaydedilmez")
+    func redirectedResultIsNotLoggedWhilePending() async throws {
+        let productRepository = MockProductRepository()
+        productRepository.productToReturn = Product(
+            barcode: "777", name: "Boş Ürün", brand: nil, imageURL: nil,
+            ingredientsText: nil, allergens: [], traces: [], categories: [], type: .food
+        )
+        let scanHistoryRepository = MockScanHistoryRepository()
+        let viewModel = makeViewModel(
+            productRepository: productRepository,
+            savedIngredientsTextRepository: MockSavedIngredientsTextRepository(),
+            scanHistoryRepository: scanHistoryRepository
+        )
+        viewModel.barcode = "777"
+
+        viewModel.search()
+        try await waitUntil { viewModel.pendingIngredientsScanContext != nil }
+
+        #expect(scanHistoryRepository.savedEntries.isEmpty)
+    }
+
+    @Test("Kullanıcı OCR'dan fotoğraf çekmeden vazgeçerse, bekleyen 'ara' unknown sonucu O ZAMAN geçmişe kaydedilir")
+    func dismissingIngredientsScanLogsThePendingResult() async throws {
+        let productRepository = MockProductRepository()
+        let scanHistoryRepository = MockScanHistoryRepository()
+        let viewModel = makeViewModel(
+            productRepository: productRepository,
+            savedIngredientsTextRepository: MockSavedIngredientsTextRepository(),
+            scanHistoryRepository: scanHistoryRepository
+        )
+        viewModel.barcode = "555"
+
+        viewModel.search()
+        try await waitUntil { viewModel.isProductNotFound }
+        #expect(scanHistoryRepository.savedEntries.isEmpty)
+
+        viewModel.ingredientsScanDismissedWithoutCompleting()
+
+        #expect(viewModel.pendingIngredientsScanContext == nil)
+        #expect(scanHistoryRepository.savedEntries.count == 1)
+        #expect(scanHistoryRepository.savedEntries.first?.barcode == "555")
+        #expect(scanHistoryRepository.savedEntries.first?.snapshotStatus == .unknown)
+        #expect(scanHistoryRepository.savedEntries.first?.source == .off)
+    }
+
+    @Test("Profil boşken bulunan bir üründe (yönlendirme de yok) hiçbir şey geçmişe kaydedilmez")
+    func emptyProfileResultIsNotLoggedToHistory() async throws {
+        let productRepository = MockProductRepository()
+        productRepository.productToReturn = Product(
+            barcode: "222", name: "Ürün", brand: nil, imageURL: nil,
+            ingredientsText: "su, şeker", allergens: [], traces: [], categories: [], type: .food
+        )
+        let profileRepository = MockUserProfileRepository()
+        profileRepository.allergens = []
+        profileRepository.customTerms = []
+        let scanHistoryRepository = MockScanHistoryRepository()
+        let viewModel = makeViewModel(
+            productRepository: productRepository,
+            savedIngredientsTextRepository: MockSavedIngredientsTextRepository(),
+            scanHistoryRepository: scanHistoryRepository,
+            profileRepository: profileRepository
+        )
+        viewModel.barcode = "222"
+
+        viewModel.search()
+        try await waitUntil { viewModel.result != nil }
+
+        #expect(scanHistoryRepository.savedEntries.isEmpty)
     }
 
     /// `search()` fire-and-forget bir `Task` başlattığından, OFF yolunu test ederken

@@ -54,7 +54,8 @@ struct ToleraApp: App {
                     checkProductUseCase: checkProductUseCase,
                     findAlternativesUseCase: findAlternativesUseCase,
                     textRecognitionService: textRecognitionService,
-                    savedIngredientsTextRepository: savedIngredientsTextRepository
+                    savedIngredientsTextRepository: savedIngredientsTextRepository,
+                    scanHistoryRepository: scanHistoryRepository
                 ),
                 profileViewModel: ProfileViewModel(repository: profileRepository)
             )

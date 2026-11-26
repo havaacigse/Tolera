@@ -52,7 +52,8 @@ struct ContentView: View {
                 checkProductUseCase: checkProductUseCase
             ),
             textRecognitionService: VisionTextRecognitionService(),
-            savedIngredientsTextRepository: SavedIngredientsTextRepositoryImpl(modelContainer: modelContainer)
+            savedIngredientsTextRepository: SavedIngredientsTextRepositoryImpl(modelContainer: modelContainer),
+            scanHistoryRepository: ScanHistoryRepositoryImpl(modelContainer: modelContainer)
         ),
         profileViewModel: ProfileViewModel(repository: UserProfileRepositoryImpl())
     )
