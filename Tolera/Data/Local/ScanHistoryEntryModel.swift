@@ -13,6 +13,8 @@ final class ScanHistoryEntryModel {
     var brand: String?
     var imageURLString: String?
     var ingredientsText: String?
+    /// Opsiyonel: bu alan eklenmeden önce kaydedilmiş satırlarda nil olur (lightweight migration).
+    var rawText: String?
     var allergensRaw: [String]
     var tracesRaw: [String]
     var categories: [String]
@@ -29,6 +31,7 @@ final class ScanHistoryEntryModel {
         brand: String?,
         imageURLString: String?,
         ingredientsText: String?,
+        rawText: String?,
         allergensRaw: [String],
         tracesRaw: [String],
         categories: [String],
@@ -44,6 +47,7 @@ final class ScanHistoryEntryModel {
         self.brand = brand
         self.imageURLString = imageURLString
         self.ingredientsText = ingredientsText
+        self.rawText = rawText
         self.allergensRaw = allergensRaw
         self.tracesRaw = tracesRaw
         self.categories = categories
@@ -62,6 +66,7 @@ final class ScanHistoryEntryModel {
             brand: entry.brand,
             imageURLString: entry.imageURL?.absoluteString,
             ingredientsText: entry.ingredientsText,
+            rawText: entry.rawText,
             allergensRaw: entry.allergens.map(\.rawValue),
             tracesRaw: entry.traces.map(\.rawValue),
             categories: entry.categories,
@@ -81,6 +86,7 @@ final class ScanHistoryEntryModel {
             brand: brand,
             imageURL: imageURLString.flatMap(URL.init(string:)),
             ingredientsText: ingredientsText,
+            rawText: rawText,
             allergens: Set(allergensRaw.compactMap(Allergen.init(rawValue:))),
             traces: Set(tracesRaw.compactMap(Allergen.init(rawValue:))),
             categories: categories,

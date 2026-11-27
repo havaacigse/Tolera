@@ -5,9 +5,14 @@ import Foundation
 /// ekranında bir kayda dokunulduğunda bu use case çağrılır.
 struct RecheckScanHistoryEntryUseCase {
     private let checkProductUseCase: CheckProductUseCase
+    private let detector: IngredientAllergenDetector
 
-    init(checkProductUseCase: CheckProductUseCase = CheckProductUseCase()) {
+    init(
+        checkProductUseCase: CheckProductUseCase = CheckProductUseCase(),
+        detector: IngredientAllergenDetector = IngredientAllergenDetector()
+    ) {
         self.checkProductUseCase = checkProductUseCase
+        self.detector = detector
     }
 
     func execute(
@@ -33,14 +38,24 @@ struct RecheckScanHistoryEntryUseCase {
             customTerms: customTerms
         )
 
+        // `entry.rawText` varsa (OCR kaynaklı kayıt), başlık/besin tablosu penceresinin
+        // dışında kalan alerjen uyarıları yeniden taranır — yoksa ilk taramada yakalanan
+        // bir uyarı, geçmişten yeniden hesaplarken kaçırılabilir.
+        let warningDetection = entry.rawText.map(detector.detectWarningSentences)
+        let mergedResult = WarningSentenceAllergenMerger.merge(
+            result: result,
+            warningDetection: warningDetection,
+            userAllergens: userAllergens
+        )
+
         switch entry.source {
         case .off:
-            return result
+            return mergedResult
         case .ocrPhoto:
             // OCR kaynaklı kayıtlarda, kaydedildiği anda "içindekiler" başlığı
             // bulunamamışsa aynı temkinli kural burada da uygulanır (bkz.
             // `MissingIngredientsHeadingRule`).
-            return MissingIngredientsHeadingRule.apply(to: result, headingFound: entry.headingFound)
+            return MissingIngredientsHeadingRule.apply(to: mergedResult, headingFound: entry.headingFound)
         }
     }
 }

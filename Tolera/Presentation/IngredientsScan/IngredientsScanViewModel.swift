@@ -4,6 +4,9 @@ import Observation
 @Observable
 final class IngredientsScanViewModel {
     var isRecognizing = false
+    /// Çekilen/seçilen fotoğraf; `IngredientsScanView`'da küçük önizleme olarak gösterilir.
+    /// Analiz mantığını etkilemez, sadece OCR'a giden görseli kullanıcıya hatırlatır.
+    var capturedImageData: Data?
     var extractedText = ""
     var fullRecognizedText = ""
     var isShowingFullText = false
@@ -60,6 +63,7 @@ final class IngredientsScanViewModel {
 
     func recognizeText(from imageData: Data) {
         isRecognizing = true
+        capturedImageData = imageData
         recognitionError = nil
         result = nil
         extractedText = ""
@@ -97,6 +101,9 @@ final class IngredientsScanViewModel {
         let textToAnalyze = isShowingFullText ? fullRecognizedText : extractedText
         let userAllergens = profileRepository.loadAllergens()
         let customTerms = profileRepository.loadCustomTerms()
+        // `fullRecognizedText` (ham OCR metni) her zaman taranır — kullanıcı sadece
+        // ayıklanmış metni (extractedText) düzenlese bile, başlık/besin tablosu dışında
+        // kalan alerjen uyarıları kaçırılmasın.
         result = checkIngredientsTextUseCase.execute(
             rawText: textToAnalyze,
             userAllergens: userAllergens,
@@ -105,7 +112,8 @@ final class IngredientsScanViewModel {
             barcode: context?.barcode ?? "",
             brand: context?.brand,
             imageURL: context?.imageURL,
-            categories: context?.categories ?? []
+            categories: context?.categories ?? [],
+            fullRawText: fullRecognizedText
         )
 
         // Barkod biliniyorsa (barkod taramasından yönlendirildiyse) bu metin barkod
@@ -120,6 +128,7 @@ final class IngredientsScanViewModel {
                     imageURL: context?.imageURL,
                     categories: context?.categories ?? [],
                     ingredientsText: textToAnalyze,
+                    rawText: fullRecognizedText,
                     headingFound: hasIngredientsHeading,
                     savedAt: Date()
                 )
@@ -137,6 +146,7 @@ final class IngredientsScanViewModel {
             brand: context?.brand,
             imageURL: context?.imageURL,
             ingredientsText: result.product.ingredientsText,
+            rawText: fullRecognizedText,
             allergens: [],
             traces: [],
             categories: context?.categories ?? [],
@@ -148,6 +158,7 @@ final class IngredientsScanViewModel {
     }
 
     func reset() {
+        capturedImageData = nil
         extractedText = ""
         fullRecognizedText = ""
         isShowingFullText = false

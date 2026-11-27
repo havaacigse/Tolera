@@ -19,7 +19,11 @@ struct SavedIngredientsTextRepositoryImplTests {
         return SavedIngredientsTextRepositoryImpl(modelContainer: container)
     }
 
-    private func makeRecord(barcode: String = "123", ingredientsText: String = "su, şeker") -> SavedIngredientsText {
+    private func makeRecord(
+        barcode: String = "123",
+        ingredientsText: String = "su, şeker",
+        rawText: String? = nil
+    ) -> SavedIngredientsText {
         SavedIngredientsText(
             barcode: barcode,
             productName: "Test Ürün",
@@ -27,6 +31,7 @@ struct SavedIngredientsTextRepositoryImplTests {
             imageURL: URL(string: "https://example.com/image.jpg"),
             categories: ["yogurts"],
             ingredientsText: ingredientsText,
+            rawText: rawText,
             headingFound: true,
             savedAt: Date()
         )
@@ -78,6 +83,44 @@ struct SavedIngredientsTextRepositoryImplTests {
         repository.save(makeRecord(barcode: "222"))
 
         #expect(repository.all().count == 2)
+    }
+
+    @Test("rawText alanı opsiyonel: hem nil hem dolu değerle sorunsuz kaydedilip okunur")
+    func rawTextFieldRoundTrips() {
+        let repository = makeRepository()
+        repository.save(makeRecord(barcode: "111", rawText: nil))
+        repository.save(makeRecord(barcode: "222", rawText: "Alerjen uyarısı: Fındık içerebilir."))
+
+        #expect(repository.find(barcode: "111")?.rawText == nil)
+        #expect(repository.find(barcode: "222")?.rawText == "Alerjen uyarısı: Fındık içerebilir.")
+    }
+
+    /// Şema göçü (migration) güvenliği: `rawText` eklenmeden önce kaydedilmiş satırlar,
+    /// bu alan `nil` olarak gelir (SwiftData'nın yeni OPSİYONEL bir alan eklemeyi otomatik
+    /// desteklediği, dokümante edilmiş "lightweight migration" durumu — yeni bir
+    /// `VersionedSchema`/migration planı gerekmez). Gerçek bir "eski ikili dosyayı yeni
+    /// şemayla açma" senaryosunu bu hızlı birim testinde tam olarak simüle etmek pratik
+    /// değil (gerçek bir eski .sqlite fixture'ı gerektirir); burada doğrulanan, bu alanın
+    /// nil değerle (göç sonrası eski satırların hâli budur) hiçbir yerde çökmeden, doğru
+    /// şekilde akıp gittiğidir — repository → domain dönüşümünün tamamı dahil.
+    @Test("rawText eklenmeden önceki satırları temsil eden nil değer, tüm okuma/kontrol akışında sorunsuz çalışır")
+    func nilRawTextDoesNotCrashAnywhereInTheReadPath() {
+        let repository = makeRepository()
+        repository.save(makeRecord(barcode: "333", rawText: nil))
+
+        let found = repository.find(barcode: "333")
+        #expect(found != nil)
+        #expect(found?.rawText == nil)
+
+        let useCase = CheckIngredientsTextUseCase()
+        let result = useCase.execute(
+            rawText: found!.ingredientsText,
+            userAllergens: [.milk],
+            customTerms: [],
+            headingFound: found!.headingFound,
+            fullRawText: found!.rawText
+        )
+        #expect(result.status == .safe)
     }
 
     // Regresyon testi: container'ı sadece yerel bir değişkende oluşturup repository'ye

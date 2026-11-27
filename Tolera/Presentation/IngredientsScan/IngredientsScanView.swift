@@ -1,6 +1,7 @@
 import PhotosUI
 import SwiftData
 import SwiftUI
+import UIKit
 
 /// İçindekiler fotoğrafından kontrol ekranı: fotoğraf seç/çek → okunan metni
 /// düzenle → "Kontrol et" ile analiz et. Kategori bilgisi olmadığından
@@ -87,11 +88,17 @@ struct IngredientsScanView: View {
         }
     }
 
+    @ViewBuilder
     private var reviewSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Okunan metni kontrol et ve gerekirse düzelt")
-                .font(.caption.bold())
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 16) {
+            if let imageData = viewModel.capturedImageData, let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxHeight: 200)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .frame(maxWidth: .infinity)
+            }
 
             if !viewModel.hasIngredientsHeading {
                 Text("⚠️ 'İçindekiler' başlığı bulunamadı. Ambalajın 'İçindekiler' yazan bölümünü yakından çekmeyi dene, yoksa sonuç güvenilir olmayabilir.")
@@ -99,23 +106,33 @@ struct IngredientsScanView: View {
                     .foregroundStyle(.orange)
             }
 
-            TextEditor(text: viewModel.isShowingFullText ? $viewModel.fullRecognizedText : $viewModel.extractedText)
-                .frame(minHeight: 160)
-                .padding(4)
-                .background(Color.secondary.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-
-            Button(viewModel.isShowingFullText ? "Ayıklanmış metni göster" : "Tüm metni göster") {
-                viewModel.isShowingFullText.toggle()
-            }
-            .font(.footnote)
-
             Button("Kontrol et") {
                 viewModel.checkText()
             }
             .buttonStyle(.borderedProminent)
             .frame(maxWidth: .infinity)
+
+            readTextDisclosure
         }
+    }
+
+    private var readTextDisclosure: some View {
+        DisclosureGroup("Okunan metni gör / düzelt") {
+            VStack(alignment: .leading, spacing: 10) {
+                TextEditor(text: viewModel.isShowingFullText ? $viewModel.fullRecognizedText : $viewModel.extractedText)
+                    .frame(minHeight: 160)
+                    .padding(4)
+                    .background(Color.secondary.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                Button(viewModel.isShowingFullText ? "Ayıklanmış metni göster" : "Tüm metni göster") {
+                    viewModel.isShowingFullText.toggle()
+                }
+                .font(.footnote)
+            }
+            .padding(.top, 8)
+        }
+        .font(.footnote)
     }
 
     @ViewBuilder

@@ -60,6 +60,7 @@ struct SearchViewModelTests {
     private func makeSavedRecord(
         barcode: String = "123",
         ingredientsText: String = "su, şeker",
+        rawText: String? = nil,
         headingFound: Bool = true
     ) -> SavedIngredientsText {
         SavedIngredientsText(
@@ -69,6 +70,7 @@ struct SearchViewModelTests {
             imageURL: URL(string: "https://example.com/image.jpg"),
             categories: ["yogurts"],
             ingredientsText: ingredientsText,
+            rawText: rawText,
             headingFound: headingFound,
             savedAt: Date()
         )
@@ -129,6 +131,30 @@ struct SearchViewModelTests {
 
         #expect(viewModel.result?.status == .unknown)
         #expect(viewModel.result?.isMissingIngredientsHeading == true)
+    }
+
+    /// Güvenlik gerilemesi testi: ilk taramada (OCR) yakalanan bir uyarı, aynı ürün hafızadan
+    /// (ikinci kez) kontrol edilince KAÇIRILMAMALI — "ilk okutmada dikkat, ikincisinde uygun"
+    /// olamaz. `saved.rawText` doluysa `detectWarningSentences` hafıza yolunda da çalışmalı.
+    @Test("Kaydın rawText'inde 'Fındık içerebilir' varsa, hafızadan tekrar kontrolde fındık mayContain olur")
+    func savedRecordRawTextTriggersWarningSentenceRescan() async throws {
+        let saved = makeSavedRecord(
+            ingredientsText: "şeker, kakao",
+            rawText: "İçindekiler: şeker, kakao. Besin değerleri: Enerji 500 kcal. Alerjen uyarısı: Fındık içerebilir."
+        )
+        let profileRepository = MockUserProfileRepository()
+        profileRepository.allergens = [.nuts]
+        let viewModel = makeViewModel(
+            productRepository: MockProductRepository(),
+            savedIngredientsTextRepository: MockSavedIngredientsTextRepository(preloaded: [saved]),
+            profileRepository: profileRepository
+        )
+        viewModel.barcode = "123"
+
+        viewModel.search()
+
+        #expect(viewModel.result?.status == .caution)
+        #expect(viewModel.result?.matchedTraces.contains(.nuts) == true)
     }
 
     @Test("Barkod hafızasında kayıt yoksa normal OFF akışı çalışmayı sürdürür")

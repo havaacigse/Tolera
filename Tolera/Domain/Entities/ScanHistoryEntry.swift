@@ -19,6 +19,11 @@ struct ScanHistoryEntry: Identifiable {
     let brand: String?
     let imageURL: URL?
     let ingredientsText: String?
+    /// Ham, kesilmemiş OCR metni (varsa, sadece `.ocrPhoto` kaynaklı kayıtlarda). Bkz.
+    /// `SavedIngredientsText.rawText`'teki açıklama — `RecheckScanHistoryEntryUseCase`
+    /// yeniden hesaplarken bunu `detectWarningSentences` için kullanır. Opsiyonel: eski
+    /// kayıtlarda nil olur.
+    let rawText: String?
     let allergens: Set<Allergen>
     let traces: Set<Allergen>
     let categories: [String]
@@ -35,6 +40,7 @@ struct ScanHistoryEntry: Identifiable {
         brand: String?,
         imageURL: URL?,
         ingredientsText: String?,
+        rawText: String? = nil,
         allergens: Set<Allergen>,
         traces: Set<Allergen>,
         categories: [String],
@@ -50,6 +56,7 @@ struct ScanHistoryEntry: Identifiable {
         self.brand = brand
         self.imageURL = imageURL
         self.ingredientsText = ingredientsText
+        self.rawText = rawText
         self.allergens = allergens
         self.traces = traces
         self.categories = categories

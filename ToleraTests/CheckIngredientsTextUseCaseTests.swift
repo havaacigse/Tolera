@@ -124,4 +124,76 @@ struct CheckIngredientsTextUseCaseTests {
         #expect(result.status == .safe)
         #expect(!result.isMissingIngredientsHeading)
     }
+
+    // MARK: - Uyarı cümleleri: içindekiler penceresi DIŞINDaki alerjen uyarıları
+
+    /// Gerçek cihaz riski: kullanıcı ekranda sadece ayıklanmış (kesilmiş) metni görüp onu
+    /// düzenlese bile, ham OCR metninin tamamındaki uyarı taraması yine çalışmalı — yoksa
+    /// besin tablosundan sonraki "X içerebilir" uyarısı sessizce kaybolur.
+    @Test func besinTablosundanSonrakiUyariKullaniciDuzenlenmisMetindeOlmasaDaTespitEdilir() {
+        let useCase = CheckIngredientsTextUseCase()
+        let fullRawText = "İçindekiler: şeker, kakao. Besin değerleri: Enerji 500 kcal. Alerjen uyarısı: Fındık içerebilir."
+        // Kullanıcı ekranda sadece ayıklanmış kısmı görüyor ve düzenliyor; uyarı bunun içinde YOK.
+        let editedExtractedText = "şeker, kakao"
+
+        let result = useCase.execute(
+            rawText: editedExtractedText,
+            userAllergens: [.nuts],
+            customTerms: [],
+            headingFound: true,
+            fullRawText: fullRawText
+        )
+
+        #expect(result.status == .caution)
+        #expect(result.matchedTraces.contains(.nuts))
+        #expect(result.allergenReasons[.nuts]?.contains("Etiketin başka bir yerinde") == true)
+    }
+
+    /// "X içerir" gibi daha kesin bir ifade, içindekiler listesinden ÖNCE yazılsa da
+    /// contains (sadece eser miktar değil) olarak sayılır.
+    @Test func baslikOncesiKesinUyariContainsOlarakSayilir() {
+        let useCase = CheckIngredientsTextUseCase()
+        let fullRawText = "Alerjen uyarısı: Süt içerir. İçindekiler: şeker, kakao."
+
+        let result = useCase.execute(
+            rawText: "şeker, kakao",
+            userAllergens: [.milk],
+            customTerms: [],
+            headingFound: true,
+            fullRawText: fullRawText
+        )
+
+        #expect(result.status == .unsafe)
+        #expect(result.matchedAllergens.contains(.milk))
+    }
+
+    /// `fullRawText` verilmezse (ör. barkod hafızasından yeniden hesaplama) uyarı taraması
+    /// hiç yapılmaz — geriye dönük uyumluluk, davranış değişmez.
+    @Test func fullRawTextVerilmezseUyariTaramasiYapilmaz() {
+        let useCase = CheckIngredientsTextUseCase()
+        let result = useCase.execute(rawText: "şeker, kakao", userAllergens: [.nuts], customTerms: [], headingFound: true)
+
+        #expect(result.status == .safe)
+    }
+
+    /// Birleştirme her zaman en temkinli sonucu almalı: içindekiler metnindeki "glutensiz
+    /// yulaf" çapraz bulaşma uyarısı (eser miktar, mayContain) ile ham metindeki "gluten
+    /// içerir" uyarısı (içerik, contains) birleştiğinde, daha temkinli (contains) kazanmalı —
+    /// "içindekiler metni OFF etiketine üstün gelir" kuralı bunu EZMEMELİ.
+    @Test func birlestirmeEnTemkinliSonucuAlirUyariIcindekilerinEserMiktarSinyalinizEzmez() {
+        let useCase = CheckIngredientsTextUseCase()
+        let fullRawText = "İçindekiler: glutensiz yulaf. Alerjen uyarısı: gluten içerir."
+
+        let result = useCase.execute(
+            rawText: "glutensiz yulaf",
+            userAllergens: [.gluten],
+            customTerms: [],
+            headingFound: true,
+            fullRawText: fullRawText
+        )
+
+        #expect(result.status == .unsafe)
+        #expect(result.matchedAllergens.contains(.gluten))
+        #expect(!result.matchedTraces.contains(.gluten))
+    }
 }

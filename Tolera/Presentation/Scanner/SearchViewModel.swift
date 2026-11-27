@@ -95,6 +95,9 @@ final class SearchViewModel {
         // varsa, OFF'a hiç gidilmez; sonuç doğrudan o metinden üretilir.
         if let saved = savedIngredientsTextRepository.find(barcode: barcode) {
             savedIngredientsTextSource = saved
+            // `saved.rawText` (varsa) de taranır: ilk taramada başlık/besin tablosu dışında
+            // yakalanan bir uyarı, hafızadan ikinci kez okunurken kaçırılmasın (güvenlik
+            // gerilemesi olurdu — aynı ürün ilk okutmada "dikkat", ikincisinde "uygun" çıkamaz).
             let checkResult = checkIngredientsTextUseCase.execute(
                 rawText: saved.ingredientsText,
                 userAllergens: userAllergens,
@@ -103,13 +106,14 @@ final class SearchViewModel {
                 barcode: saved.barcode,
                 brand: saved.brand,
                 imageURL: saved.imageURL,
-                categories: saved.categories
+                categories: saved.categories,
+                fullRawText: saved.rawText
             )
             result = checkResult
             isLoading = false
             // Hafıza yolu yönlendirmeye hiç girmez (Adım B'nin kapsamı sadece OFF yolu);
             // bu yüzden sonuç her zaman kesindir ve hemen kaydedilir.
-            logToHistory(product: checkResult.product, result: checkResult, source: .ocrPhoto)
+            logToHistory(product: checkResult.product, result: checkResult, source: .ocrPhoto, rawText: saved.rawText)
             return
         }
 
@@ -203,7 +207,7 @@ final class SearchViewModel {
         deferredHistoryLogAction = nil
     }
 
-    private func logToHistory(product: Product, result: ProductCheckResult, source: ScanSource) {
+    private func logToHistory(product: Product, result: ProductCheckResult, source: ScanSource, rawText: String? = nil) {
         guard !result.isProfileEmpty else { return }
         scanHistoryRepository.save(ScanHistoryEntry(
             barcode: product.barcode.isEmpty ? nil : product.barcode,
@@ -211,6 +215,7 @@ final class SearchViewModel {
             brand: product.brand,
             imageURL: product.imageURL,
             ingredientsText: product.ingredientsText,
+            rawText: rawText,
             allergens: product.allergens,
             traces: product.traces,
             categories: product.categories,

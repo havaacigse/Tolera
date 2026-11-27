@@ -11,6 +11,9 @@ final class SavedIngredientsTextModel {
     var imageURLString: String?
     var categories: [String]
     var ingredientsText: String
+    /// Opsiyonel: bu alan eklenmeden önce kaydedilmiş satırlarda nil olur (SwiftData
+    /// lightweight migration — yeni opsiyonel alan, mevcut veriyi bozmaz).
+    var rawText: String?
     var headingFound: Bool
     var savedAt: Date
 
@@ -21,6 +24,7 @@ final class SavedIngredientsTextModel {
         imageURLString: String?,
         categories: [String],
         ingredientsText: String,
+        rawText: String?,
         headingFound: Bool,
         savedAt: Date
     ) {
@@ -30,6 +34,7 @@ final class SavedIngredientsTextModel {
         self.imageURLString = imageURLString
         self.categories = categories
         self.ingredientsText = ingredientsText
+        self.rawText = rawText
         self.headingFound = headingFound
         self.savedAt = savedAt
     }
@@ -42,6 +47,7 @@ final class SavedIngredientsTextModel {
             imageURLString: record.imageURL?.absoluteString,
             categories: record.categories,
             ingredientsText: record.ingredientsText,
+            rawText: record.rawText,
             headingFound: record.headingFound,
             savedAt: record.savedAt
         )
@@ -54,6 +60,7 @@ final class SavedIngredientsTextModel {
         imageURLString = record.imageURL?.absoluteString
         categories = record.categories
         ingredientsText = record.ingredientsText
+        rawText = record.rawText
         headingFound = record.headingFound
         savedAt = record.savedAt
     }
@@ -66,6 +73,7 @@ final class SavedIngredientsTextModel {
             imageURL: imageURLString.flatMap(URL.init(string:)),
             categories: categories,
             ingredientsText: ingredientsText,
+            rawText: rawText,
             headingFound: headingFound,
             savedAt: savedAt
         )

@@ -5,6 +5,7 @@ struct RecheckScanHistoryEntryUseCaseTests {
     private func makeEntry(
         source: ScanSource,
         ingredientsText: String?,
+        rawText: String? = nil,
         allergens: Set<Allergen> = [],
         categories: [String] = [],
         headingFound: Bool = true
@@ -15,6 +16,7 @@ struct RecheckScanHistoryEntryUseCaseTests {
             brand: "Marka",
             imageURL: nil,
             ingredientsText: ingredientsText,
+            rawText: rawText,
             allergens: allergens,
             traces: [],
             categories: categories,
@@ -74,5 +76,23 @@ struct RecheckScanHistoryEntryUseCaseTests {
         let result = useCase.execute(entry: entry, userAllergens: [.milk], customTerms: [])
 
         #expect(result.product.categories == ["yogurts"])
+    }
+
+    /// Güvenlik gerilemesi testi: kaydın `rawText`'inde başlık/besin tablosu dışında
+    /// yakalanan bir uyarı varsa, geçmişten yeniden hesaplanırken de kaçırılmamalı.
+    @Test("rawText'te 'Fındık içerebilir' varsa, geçmişten yeniden hesaplamada fındık mayContain olur")
+    func ocrSourcedEntryRawTextTriggersWarningSentenceRescan() {
+        let useCase = RecheckScanHistoryEntryUseCase()
+        let entry = makeEntry(
+            source: .ocrPhoto,
+            ingredientsText: "şeker, kakao",
+            rawText: "İçindekiler: şeker, kakao. Besin değerleri: Enerji 500 kcal. Alerjen uyarısı: Fındık içerebilir.",
+            headingFound: true
+        )
+
+        let result = useCase.execute(entry: entry, userAllergens: [.nuts], customTerms: [])
+
+        #expect(result.status == .caution)
+        #expect(result.matchedTraces.contains(.nuts))
     }
 }

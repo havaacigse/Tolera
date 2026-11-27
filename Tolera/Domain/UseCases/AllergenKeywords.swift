@@ -95,6 +95,23 @@ enum AllergenKeywords {
     /// Başlangıç ifadesi yoksa ve sadece "içerebilir"/"bulunabilir" fiili varsa devreye girer.
     static let trailingTriggerPhrases = ["içerebilir", "bulunabilir"]
 
+    /// `IngredientAllergenDetector.detectWarningSentences` için: içindekiler listesi
+    /// PENCERESİ DIŞINDA (etiketin başka bir yerinde) geçen alerjen uyarı cümlelerini
+    /// tetikleyen, çapraz bulaşma/ihtimal belirten ifadeler — bulunursa eser miktar (mayContain).
+    static let warningSentenceTraceStrengthPhrases = [
+        "içerebilir", "eser miktarda", "may contain", "tesiste üretilmiştir", "işlenmektedir"
+    ]
+
+    /// Aynı tarama için: daha kesin/belirsiz ifadeler — yukarıdaki çapraz bulaşma
+    /// ifadelerinden biri YOKSA (temkinli ilke: belirsizlikte içerik sayılır) içerik (contains).
+    static let warningSentenceAdditionalTriggerPhrases = ["içerir", "alerjen", "contains"]
+
+    /// Uyarı taramasında "alerjen"/"içerir" gibi tetikleyiciler olumsuzlanmış bir ifadeyle
+    /// ("Gluten içermez") aynı VİRGÜLLE AYRILMIŞ ifadede geçerse yanlış alarm vermesin diye:
+    /// bu ifadelerden biri varsa, sadece o ifadedeki (virgülle ayrılmış) kısım yok sayılır —
+    /// aynı cümledeki DİĞER ifadeler ("..., fındık içerebilir" gibi) etkilenmez.
+    static let warningSentenceNegationPhrases = ["içermez", "içermiyor"]
+
     /// Eser miktar cümlesinde fiil dışında sadece bu BAĞLAÇ kelimeleri varsa belirsizlik
     /// oluşturmaz (tam kelime eşleşmesi: "ve" kelimesi "venüs" gibi kelimelerle karışmasın).
     static let traceSentenceAllowedConnectorWords = ["ve", "ile", "veya", "bu", "iz", "may", "of", "and"]

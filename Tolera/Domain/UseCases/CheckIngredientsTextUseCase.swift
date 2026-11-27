@@ -9,11 +9,24 @@ import Foundation
 /// çalışabilir. Varsayılanlar önceki davranışı korur, mevcut çağıran taraflar değişmez.
 struct CheckIngredientsTextUseCase {
     private let checkProductUseCase: CheckProductUseCase
+    private let detector: IngredientAllergenDetector
 
-    init(checkProductUseCase: CheckProductUseCase = CheckProductUseCase()) {
+    init(
+        checkProductUseCase: CheckProductUseCase = CheckProductUseCase(),
+        detector: IngredientAllergenDetector = IngredientAllergenDetector()
+    ) {
         self.checkProductUseCase = checkProductUseCase
+        self.detector = detector
     }
 
+    /// `fullRawText` verilirse (ham, kesilmemiş OCR metni), `IngredientsSectionExtractor`'ın
+    /// içindekiler penceresinin DIŞINDA bıraktığı alerjen uyarı cümleleri de taranır (bkz.
+    /// `IngredientAllergenDetector.detectWarningSentences`) — kullanıcı ekranda sadece
+    /// ayıklanmış `rawText`i düzenlese bile bu tarama ham metin üzerinde çalışır. Bulunanlar
+    /// `WarningSentenceAllergenMerger` ile temkinli ilkeyle (contains > mayContain) sonuca
+    /// eklenir; sıralama önemli: önce birleştirme, SONRA başlık kuralı (böylece uyarıdan gelen
+    /// bir eşleşme, "başlık bulunamadı" kuralının "safe → unknown" indirgemesini de doğru
+    /// şekilde tetikler/önler).
     func execute(
         rawText: String,
         userAllergens: Set<Allergen>,
@@ -22,7 +35,8 @@ struct CheckIngredientsTextUseCase {
         barcode: String = "",
         brand: String? = nil,
         imageURL: URL? = nil,
-        categories: [String] = []
+        categories: [String] = [],
+        fullRawText: String? = nil
     ) -> ProductCheckResult {
         let cleanedText = OCRTextCleaner.clean(rawText)
         let product = Product(
@@ -42,6 +56,13 @@ struct CheckIngredientsTextUseCase {
             customTerms: customTerms
         )
 
-        return MissingIngredientsHeadingRule.apply(to: result, headingFound: headingFound)
+        let warningDetection = fullRawText.map(detector.detectWarningSentences)
+        let mergedResult = WarningSentenceAllergenMerger.merge(
+            result: result,
+            warningDetection: warningDetection,
+            userAllergens: userAllergens
+        )
+
+        return MissingIngredientsHeadingRule.apply(to: mergedResult, headingFound: headingFound)
     }
 }

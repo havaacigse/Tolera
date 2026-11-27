@@ -53,4 +53,14 @@ struct IngredientsSectionExtractorTests {
         let text = "Üretim yeri: Konya, Türkiye. Net 500 g."
         #expect(!IngredientsSectionExtractor.headingFound(in: text))
     }
+
+    /// Son nokta sadece sabit bir kelime listesiyle ("besin değerleri", "enerji" vb.)
+    /// belirleniyor; içindekiler listesinin hemen ardından (besin tablosundan ÖNCE) gelen
+    /// bir eser miktar uyarısı kesilmez, analize girer.
+    @Test func icindekilerListesiSonrasiEserMiktarUyarisiBesinTablosundanOncekesilmez() {
+        let text = "İçindekiler: buğday unu, şeker. Fındık içerebilir. Enerji: 520 kcal"
+        let result = IngredientsSectionExtractor.extract(from: text)
+        #expect(result.contains("Fındık içerebilir"))
+        #expect(!result.contains("520 kcal"))
+    }
 }

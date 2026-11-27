@@ -65,6 +65,78 @@ struct IngredientAllergenDetector {
         return combined
     }
 
+    /// Ham OCR metninin HER YERİNDE (içindekiler listesi penceresinin dışında da) geçen
+    /// alerjen uyarı cümlelerini tarar. `IngredientsSectionExtractor`, "içindekiler...besin
+    /// değerleri" aralığının dışında kalan metni kestiği için `detect(in:)` bu kısmı hiç
+    /// görmez — ama gerçek etiketlerde "Alerjen uyarısı: X içerebilir" ya da "X ve Y işlenen
+    /// tesiste üretilmiştir" gibi uyarılar içindekiler listesinden ÖNCE veya besin tablosundan
+    /// SONRA yazılabiliyor. Bu, ayrı bir tarama gerektirir (kesilmemiş tam metin üzerinde).
+    /// Temkinli ilke: çapraz bulaşma/ihtimal ifadesi (`warningSentenceTraceStrengthPhrases`)
+    /// varsa eser miktar; yoksa (sadece "içerir"/"alerjen" gibi daha kesin/belirsiz bir
+    /// tetikleyici varsa) içerik sayılır — belirsizlikte her zaman daha temkinli seçilir.
+    ///
+    /// Tetikleyici arama CÜMLE SEVİYESİNDE yapılır (virgülle bölünmez): "Fındık, badem, süt
+    /// ve susam içerebilir." gibi bir listede fiil sonda olsa da liste TAMAMINI kapsar — eğer
+    /// tetikleyici her virgülle ayrılmış ifadeye ayrı ayrı arasaydı, fiili taşımayan ilk
+    /// ifadeler (fındık, badem) atlanırdı (gerçek bir kaçırma riski, test edilip bulundu).
+    /// Olumsuzlama ("içermez") ise SADECE virgülle ayrılmış kendi ifadesini etkiler: "Gluten
+    /// içermez, fındık içerebilir." cümlesinde gluten hariç tutulur ama fındık uyarısı etkilenmez
+    /// — bu yüzden olumsuzlama kontrolü ayrıca ifade (clause) seviyesinde yapılır. Mevcut
+    /// dedektörün istisna/özel ifade ayıklaması (`applyExceptionsAndSpecialPhrases`) her
+    /// ifadeye uygulanır ki "hindistan cevizi" gibi istisnalar ve "glutensiz X" çapraz bulaşma
+    /// kuralı burada da tutarlı çalışsın.
+    func detectWarningSentences(in text: String) -> IngredientDetectionResult {
+        let normalizedText = normalize(text)
+        let sentences = splitIntoParts(normalizedText)
+
+        var contains: Set<Allergen> = []
+        var mayContain: Set<Allergen> = []
+        var reasons: [Allergen: String] = [:]
+
+        for sentence in sentences {
+            let hasTraceStrengthPhrase = AllergenKeywords.warningSentenceTraceStrengthPhrases.contains {
+                TurkishWordMatcher.matchesWordStart(keyword: $0, in: sentence)
+            }
+            let hasAdditionalTrigger = AllergenKeywords.warningSentenceAdditionalTriggerPhrases.contains {
+                TurkishWordMatcher.matchesWordStart(keyword: $0, in: sentence)
+            }
+            guard hasTraceStrengthPhrase || hasAdditionalTrigger else { continue }
+
+            for clause in sentence.components(separatedBy: ",") {
+                let (cleanedClause, forcedTrace, forcedTraceReasons) = applyExceptionsAndSpecialPhrases(to: clause)
+
+                let isNegated = AllergenKeywords.warningSentenceNegationPhrases.contains {
+                    TurkishWordMatcher.matchesWordStart(keyword: $0, in: cleanedClause)
+                }
+                guard !isNegated else { continue }
+
+                let reasonText = "Etiketin başka bir yerinde: \(clause.trimmingCharacters(in: .whitespaces))"
+
+                let allergensInClause = findAllergens(in: cleanedClause)
+                if !allergensInClause.isEmpty {
+                    if hasTraceStrengthPhrase {
+                        mayContain.formUnion(allergensInClause)
+                    } else {
+                        contains.formUnion(allergensInClause)
+                    }
+                    for allergen in allergensInClause where reasons[allergen] == nil {
+                        reasons[allergen] = reasonText
+                    }
+                }
+
+                if !forcedTrace.isEmpty {
+                    mayContain.formUnion(forcedTrace)
+                    for allergen in forcedTrace where reasons[allergen] == nil {
+                        reasons[allergen] = forcedTraceReasons[allergen] ?? reasonText
+                    }
+                }
+            }
+        }
+
+        mayContain.subtract(contains)
+        return IngredientDetectionResult(contains: contains, mayContain: mayContain, isUnrecognizedLanguage: false, reasons: reasons)
+    }
+
     // MARK: - 1. Normalize
 
     /// Metni Türkçe kurallarına göre küçük harfe çevirir (İ→i, I→ı doğru çalışsın).
