@@ -48,14 +48,18 @@ struct HistoryView: View {
                 ForEach(viewModel.dayGroups) { group in
                     Section(HistoryFormatting.dayHeaderText(for: group.day)) {
                         ForEach(group.rows) { row in
-                            HistoryRowContent(row: row)
-                                .swipeActions {
-                                    Button(role: .destructive) {
-                                        viewModel.delete(id: row.id)
-                                    } label: {
-                                        Label("Sil", systemImage: "trash")
-                                    }
+                            NavigationLink {
+                                HistoryDetailView(row: row, onDelete: { viewModel.delete(id: row.id) })
+                            } label: {
+                                HistoryRowContent(row: row)
+                            }
+                            .swipeActions {
+                                Button(role: .destructive) {
+                                    viewModel.delete(id: row.id)
+                                } label: {
+                                    Label("Sil", systemImage: "trash")
                                 }
+                            }
                         }
                     }
                 }

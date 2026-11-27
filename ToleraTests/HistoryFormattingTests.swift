@@ -89,4 +89,119 @@ struct HistoryFormattingTests {
         let entry = makeEntry(productName: "", barcode: nil)
         #expect(HistoryFormatting.displayName(for: entry) == "Adsız ürün")
     }
+
+    // MARK: - HistoryDetailView için gerekçe/neden yardımcıları
+
+    private func makeProduct(ingredientsText: String? = "süt tozu, şeker") -> Product {
+        Product(
+            barcode: "123",
+            name: "Test Ürün",
+            brand: "Marka",
+            imageURL: nil,
+            ingredientsText: ingredientsText,
+            allergens: [],
+            traces: [],
+            categories: [],
+            type: .food
+        )
+    }
+
+    private func makeResult(
+        ingredientsText: String? = "süt tozu, şeker",
+        status: CheckStatus,
+        matchedAllergens: Set<Allergen> = [],
+        matchedTraces: Set<Allergen> = [],
+        matchedCustomTerms: [String] = [],
+        isCosmeticNotSupported: Bool = false,
+        isProfileEmpty: Bool = false,
+        isMissingIngredientsHeading: Bool = false,
+        allergenReasons: [Allergen: String] = [:]
+    ) -> ProductCheckResult {
+        ProductCheckResult(
+            product: makeProduct(ingredientsText: ingredientsText),
+            status: status,
+            matchedAllergens: matchedAllergens,
+            matchedTraces: matchedTraces,
+            detectedFromIngredients: [],
+            matchedCustomTerms: matchedCustomTerms,
+            isCosmeticNotSupported: isCosmeticNotSupported,
+            isProfileEmpty: isProfileEmpty,
+            isMissingIngredientsHeading: isMissingIngredientsHeading,
+            allergenReasons: allergenReasons
+        )
+    }
+
+    @Test("Süt eşleşmesi: matchedAllergens içindeki süt için allergenReasons'taki gerekçe aynen döner")
+    func matchedAllergenReasonsIncludesMilkWithItsReason() {
+        let result = makeResult(
+            status: .unsafe,
+            matchedAllergens: [.milk],
+            allergenReasons: [.milk: "Etiketin başka bir yerinde: Alerjen uyarısı: Süt içerir."]
+        )
+
+        let reasons = HistoryFormatting.matchedAllergenReasons(for: result)
+
+        #expect(reasons.count == 1)
+        #expect(reasons.first?.allergen == .milk)
+        #expect(reasons.first?.reason == "Etiketin başka bir yerinde: Alerjen uyarısı: Süt içerir.")
+    }
+
+    @Test("İz (mayContain) eşleşmesi: matchedTraces içindeki alerjen için gerekçe döner")
+    func matchedTraceReasonsIncludesTraceAllergenWithItsReason() {
+        let result = makeResult(
+            status: .caution,
+            matchedTraces: [.nuts],
+            allergenReasons: [.nuts: "Open Food Facts etiketi"]
+        )
+
+        let reasons = HistoryFormatting.matchedTraceReasons(for: result)
+
+        #expect(reasons.count == 1)
+        #expect(reasons.first?.allergen == .nuts)
+        #expect(reasons.first?.reason == "Open Food Facts etiketi")
+    }
+
+    @Test("Hiç eşleşme yokken alerjen ve iz gerekçe listeleri boş döner")
+    func noMatchesProduceEmptyReasonLists() {
+        let result = makeResult(status: .safe)
+
+        #expect(HistoryFormatting.matchedAllergenReasons(for: result).isEmpty)
+        #expect(HistoryFormatting.matchedTraceReasons(for: result).isEmpty)
+    }
+
+    @Test("Durum .unknown değilse unknownReasonText nil döner")
+    func unknownReasonTextIsNilWhenStatusIsNotUnknown() {
+        let result = makeResult(status: .safe)
+        #expect(HistoryFormatting.unknownReasonText(for: result) == nil)
+    }
+
+    @Test("Kozmetik ürün desteklenmiyorsa nedeni açıkça belirtir")
+    func unknownReasonTextExplainsCosmeticNotSupported() {
+        let result = makeResult(status: .unknown, isCosmeticNotSupported: true)
+        #expect(HistoryFormatting.unknownReasonText(for: result) == "Kozmetik ürünler için alerjen analizi şu an desteklenmiyor.")
+    }
+
+    @Test("Profil boşsa nedeni açıkça belirtir")
+    func unknownReasonTextExplainsEmptyProfile() {
+        let result = makeResult(status: .unknown, isProfileEmpty: true)
+        #expect(HistoryFormatting.unknownReasonText(for: result) == "Profilinde hiç alerjen veya özel terim seçili değil.")
+    }
+
+    @Test("İçindekiler başlığı bulunamadıysa nedeni açıkça belirtir")
+    func unknownReasonTextExplainsMissingIngredientsHeading() {
+        let result = makeResult(status: .unknown, isMissingIngredientsHeading: true)
+        #expect(HistoryFormatting.unknownReasonText(for: result) == "İçindekiler başlığı metinde bulunamadı, bu yüzden sonuç güvenilir sayılmadı.")
+    }
+
+    @Test("İçindekiler metni yoksa nedeni açıkça belirtir")
+    func unknownReasonTextExplainsMissingIngredientsText() {
+        let result = makeResult(ingredientsText: nil, status: .unknown)
+        #expect(HistoryFormatting.unknownReasonText(for: result) == "Bu ürün için içindekiler bilgisi yok.")
+    }
+
+    @Test("İçindekiler metni var ama hiçbir bayrak set değilse (desteklenmeyen dil ihtimali) nedeni açıkça belirtir")
+    func unknownReasonTextExplainsUnrecognizedTextAsLastResort() {
+        let result = makeResult(ingredientsText: "some unrecognized text", status: .unknown)
+        #expect(HistoryFormatting.unknownReasonText(for: result) == "İçindekiler metni anlaşılamadı (desteklenmeyen bir dilde olabilir).")
+    }
 }
