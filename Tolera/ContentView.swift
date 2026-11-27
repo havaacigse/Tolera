@@ -18,6 +18,7 @@ struct ContentView: View {
     let searchViewModel: SearchViewModel
     let historyViewModel: HistoryViewModel
     let profileViewModel: ProfileViewModel
+    let onAllDataDeleted: () -> Void
     @State private var selectedTab: Tab = .search
 
     var body: some View {
@@ -34,7 +35,7 @@ struct ContentView: View {
                 }
                 .tag(Tab.history)
 
-            ProfileView(viewModel: profileViewModel)
+            ProfileView(viewModel: profileViewModel, onAllDataDeleted: onAllDataDeleted)
                 .tabItem {
                     Label("Profil", systemImage: "person.fill")
                 }
@@ -67,6 +68,14 @@ struct ContentView: View {
             scanHistoryRepository: ScanHistoryRepositoryImpl(modelContainer: modelContainer),
             profileRepository: UserProfileRepositoryImpl()
         ),
-        profileViewModel: ProfileViewModel(repository: UserProfileRepositoryImpl())
+        profileViewModel: ProfileViewModel(
+            repository: UserProfileRepositoryImpl(),
+            deleteAllUserDataUseCase: DeleteAllUserDataUseCase(
+                savedIngredientsTextRepository: SavedIngredientsTextRepositoryImpl(modelContainer: modelContainer),
+                scanHistoryRepository: ScanHistoryRepositoryImpl(modelContainer: modelContainer),
+                userProfileRepository: UserProfileRepositoryImpl()
+            )
+        ),
+        onAllDataDeleted: {}
     )
 }

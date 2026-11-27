@@ -33,6 +33,7 @@ struct HistoryViewModelTests {
         func setOnboardingCompleted() {}
         func loadCustomTerms() -> [String] { customTerms }
         func save(customTerms: [String]) { self.customTerms = customTerms }
+        func resetAll() { allergens = []; customTerms = [] }
     }
 
     private func makeEntry(

@@ -11,6 +11,7 @@ struct IngredientsScanViewModelTests {
         func find(barcode: String) -> SavedIngredientsText? { nil }
         func save(_ record: SavedIngredientsText) { savedRecords.append(record) }
         func delete(barcode: String) {}
+        func deleteAll() { savedRecords.removeAll() }
         func all() -> [SavedIngredientsText] { savedRecords }
     }
 
@@ -32,6 +33,7 @@ struct IngredientsScanViewModelTests {
         func setOnboardingCompleted() {}
         func loadCustomTerms() -> [String] { [] }
         func save(customTerms: [String]) {}
+        func resetAll() {}
     }
 
     private struct StubTextRecognitionService: TextRecognitionService {

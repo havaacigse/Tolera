@@ -47,7 +47,6 @@ struct ToleraApp: App {
         WindowGroup {
             RootView(
                 rootViewModel: RootViewModel(repository: profileRepository),
-                onboardingViewModel: OnboardingViewModel(repository: profileRepository),
                 searchViewModel: SearchViewModel(
                     productRepository: productRepository,
                     profileRepository: profileRepository,
@@ -61,7 +60,14 @@ struct ToleraApp: App {
                     scanHistoryRepository: scanHistoryRepository,
                     profileRepository: profileRepository
                 ),
-                profileViewModel: ProfileViewModel(repository: profileRepository)
+                profileViewModel: ProfileViewModel(
+                    repository: profileRepository,
+                    deleteAllUserDataUseCase: DeleteAllUserDataUseCase(
+                        savedIngredientsTextRepository: savedIngredientsTextRepository,
+                        scanHistoryRepository: scanHistoryRepository,
+                        userProfileRepository: profileRepository
+                    )
+                )
             )
         }
     }

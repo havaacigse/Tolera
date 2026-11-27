@@ -192,6 +192,25 @@ final class SearchViewModel {
         }
     }
 
+    /// "Tüm verilerimi sil" sonrası çağrılır. Bu ViewModel uygulama ömrü boyunca TEK bir
+    /// örnek olarak yaşar; silme sonrası ekrana (yeniden onboarding'den geçip) dönüldüğünde,
+    /// yeni bir arama yapılmadan `result`/`savedIngredientsTextSource` gibi alanlarda eski
+    /// (silinen profille hesaplanmış) bir sonuç görünür kalmasın. Değerler, `barcode` dahil,
+    /// yeni oluşturulmuş bir `SearchViewModel`'in başlangıç durumuna döndürülür.
+    func reset() {
+        barcode = "8680181000017"
+        isLoading = false
+        result = nil
+        errorMessage = nil
+        isProductNotFound = false
+        alternatives = nil
+        isLoadingAlternatives = false
+        alternativesLoadFailed = false
+        savedIngredientsTextSource = nil
+        pendingIngredientsScanContext = nil
+        deferredHistoryLogAction = nil
+    }
+
     /// Kullanıcı otomatik açılan OCR ekranından fotoğraf çekmeden geri döndüğünde `SearchView`
     /// tarafından çağrılır: bekleyen "ara" sonucu artık kesinleşmiş sayılır ve kaydedilir.
     func ingredientsScanDismissedWithoutCompleting() {

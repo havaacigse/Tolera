@@ -2,20 +2,17 @@ import SwiftUI
 
 struct RootView: View {
     @State private var viewModel: RootViewModel
-    private let onboardingViewModel: OnboardingViewModel
     private let searchViewModel: SearchViewModel
     private let historyViewModel: HistoryViewModel
     private let profileViewModel: ProfileViewModel
 
     init(
         rootViewModel: RootViewModel,
-        onboardingViewModel: OnboardingViewModel,
         searchViewModel: SearchViewModel,
         historyViewModel: HistoryViewModel,
         profileViewModel: ProfileViewModel
     ) {
         _viewModel = State(initialValue: rootViewModel)
-        self.onboardingViewModel = onboardingViewModel
         self.searchViewModel = searchViewModel
         self.historyViewModel = historyViewModel
         self.profileViewModel = profileViewModel
@@ -23,9 +20,20 @@ struct RootView: View {
 
     var body: some View {
         if viewModel.hasCompletedOnboarding {
-            ContentView(searchViewModel: searchViewModel, historyViewModel: historyViewModel, profileViewModel: profileViewModel)
+            ContentView(
+                searchViewModel: searchViewModel,
+                historyViewModel: historyViewModel,
+                profileViewModel: profileViewModel,
+                onAllDataDeleted: {
+                    viewModel.allDataDeleted()
+                    searchViewModel.reset()
+                }
+            )
         } else {
-            OnboardingView(viewModel: onboardingViewModel) {
+            // `viewModel.onboardingViewModel`: "Tüm verilerimi sil" sonrası RootViewModel
+            // tarafından YENİ bir örnekle değiştirilmiş olabilir (bkz. `allDataDeleted()`),
+            // bu yüzden burada sabit bir property değil, doğrudan ViewModel'den okunur.
+            OnboardingView(viewModel: viewModel.onboardingViewModel) {
                 viewModel.onboardingFinished()
             }
         }

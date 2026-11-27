@@ -37,6 +37,14 @@ final class SavedIngredientsTextRepositoryImpl: SavedIngredientsTextRepository {
         try? modelContext.save()
     }
 
+    func deleteAll() {
+        guard let all = try? modelContext.fetch(FetchDescriptor<SavedIngredientsTextModel>()) else { return }
+        for model in all {
+            modelContext.delete(model)
+        }
+        try? modelContext.save()
+    }
+
     func all() -> [SavedIngredientsText] {
         let descriptor = FetchDescriptor<SavedIngredientsTextModel>(
             sortBy: [SortDescriptor(\.savedAt, order: .reverse)]

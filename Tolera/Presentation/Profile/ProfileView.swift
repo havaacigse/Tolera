@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 struct ProfileView: View {
@@ -5,9 +6,12 @@ struct ProfileView: View {
     @State private var isEditingName = false
     @State private var isAddingCustomTerm = false
     @State private var newCustomTerm = ""
+    @State private var isConfirmingDeleteAllData = false
+    let onAllDataDeleted: () -> Void
 
-    init(viewModel: ProfileViewModel) {
+    init(viewModel: ProfileViewModel, onAllDataDeleted: @escaping () -> Void) {
         _viewModel = State(initialValue: viewModel)
+        self.onAllDataDeleted = onAllDataDeleted
     }
 
     var body: some View {
@@ -30,6 +34,8 @@ struct ProfileView: View {
                     Text("Bilgilerin sadece bu cihazda saklanır.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+
+                    dataSection
                 }
                 .padding()
             }
@@ -44,6 +50,32 @@ struct ProfileView: View {
             Button("Vazgeç", role: .cancel) {
                 newCustomTerm = ""
             }
+        }
+        .confirmationDialog(
+            "Alerji profilin, okuttuğun ürünlerin bilgileri ve tarama geçmişin bu cihazdan kalıcı olarak silinir. Bu işlem geri alınamaz.",
+            isPresented: $isConfirmingDeleteAllData,
+            titleVisibility: .visible
+        ) {
+            Button("Tüm verilerimi sil", role: .destructive) {
+                viewModel.deleteAllData()
+                onAllDataDeleted()
+            }
+            Button("Vazgeç", role: .cancel) {}
+        }
+        .onAppear {
+            viewModel.refresh()
+        }
+    }
+
+    private var dataSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Verilerim")
+                .font(.headline)
+
+            Button("Tüm verilerimi sil", role: .destructive) {
+                isConfirmingDeleteAllData = true
+            }
+            .foregroundStyle(.red)
         }
     }
 
@@ -115,5 +147,19 @@ struct ProfileView: View {
 }
 
 #Preview {
-    ProfileView(viewModel: ProfileViewModel(repository: UserProfileRepositoryImpl()))
+    let modelContainer = try! ModelContainer(
+        for: SavedIngredientsTextModel.self, ScanHistoryEntryModel.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
+    ProfileView(
+        viewModel: ProfileViewModel(
+            repository: UserProfileRepositoryImpl(),
+            deleteAllUserDataUseCase: DeleteAllUserDataUseCase(
+                savedIngredientsTextRepository: SavedIngredientsTextRepositoryImpl(modelContainer: modelContainer),
+                scanHistoryRepository: ScanHistoryRepositoryImpl(modelContainer: modelContainer),
+                userProfileRepository: UserProfileRepositoryImpl()
+            )
+        ),
+        onAllDataDeleted: {}
+    )
 }

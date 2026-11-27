@@ -12,4 +12,7 @@ protocol UserProfileRepository {
 
     func loadCustomTerms() -> [String]
     func save(customTerms: [String])
+
+    /// Alerjenler, özel terimler, isim ve onboarding bayrağını siler ("Tüm verilerimi sil").
+    func resetAll()
 }

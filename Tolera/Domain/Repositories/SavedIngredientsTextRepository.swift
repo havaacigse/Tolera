@@ -5,5 +5,6 @@ protocol SavedIngredientsTextRepository {
     func find(barcode: String) -> SavedIngredientsText?
     func save(_ record: SavedIngredientsText)
     func delete(barcode: String)
+    func deleteAll()
     func all() -> [SavedIngredientsText]
 }

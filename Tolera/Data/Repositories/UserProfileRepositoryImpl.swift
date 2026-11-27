@@ -61,4 +61,11 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
 
         defaults.set(normalized, forKey: Self.customTermsKey)
     }
+
+    func resetAll() {
+        defaults.removeObject(forKey: Self.allergensKey)
+        defaults.removeObject(forKey: Self.customTermsKey)
+        defaults.removeObject(forKey: Self.nameKey)
+        defaults.removeObject(forKey: Self.onboardingCompletedKey)
+    }
 }

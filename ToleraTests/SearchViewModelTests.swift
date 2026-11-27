@@ -31,6 +31,7 @@ struct SearchViewModelTests {
         func find(barcode: String) -> SavedIngredientsText? { storage[barcode] }
         func save(_ record: SavedIngredientsText) { storage[record.barcode] = record }
         func delete(barcode: String) { storage.removeValue(forKey: barcode) }
+        func deleteAll() { storage.removeAll() }
         func all() -> [SavedIngredientsText] { Array(storage.values) }
     }
 
@@ -55,6 +56,7 @@ struct SearchViewModelTests {
         func setOnboardingCompleted() {}
         func loadCustomTerms() -> [String] { customTerms }
         func save(customTerms: [String]) { self.customTerms = customTerms }
+        func resetAll() { allergens = []; customTerms = [] }
     }
 
     private func makeSavedRecord(
@@ -184,6 +186,41 @@ struct SearchViewModelTests {
         #expect(productRepository.productCallCount == 1)
         #expect(viewModel.savedIngredientsTextSource == nil)
         #expect(viewModel.result?.product.name == "OFF Ürünü")
+    }
+
+    /// Güvenlik gerilemesi testi: hafızadan bir kayıt silindikten (ör. Profil ekranından
+    /// "Kaydedilen ürünler" listesinden) sonra aynı barkod tekrar arandığında, artık var
+    /// olmayan eski metin KULLANILMAMALI — arama normal OFF (ağ) akışına düşmeli.
+    @Test("Hafızadaki kayıt silindikten sonra aynı barkod tekrar arandığında eski metin kullanılmaz, OFF'a (ağa) gidilir")
+    func searchAfterDeletingSavedProductGoesToNetwork() async throws {
+        let saved = makeSavedRecord(barcode: "123", ingredientsText: "süt tozu, şeker")
+        let savedRepository = MockSavedIngredientsTextRepository(preloaded: [saved])
+        let productRepository = MockProductRepository()
+        productRepository.productToReturn = Product(
+            barcode: "123",
+            name: "Ağdan Gelen Ürün",
+            brand: "OFF Marka",
+            imageURL: nil,
+            ingredientsText: "su, şeker",
+            allergens: [],
+            traces: [],
+            categories: [],
+            type: .food
+        )
+        let viewModel = makeViewModel(
+            productRepository: productRepository,
+            savedIngredientsTextRepository: savedRepository
+        )
+        viewModel.barcode = "123"
+
+        savedRepository.delete(barcode: "123")
+        viewModel.search()
+
+        try await waitUntil { viewModel.result != nil }
+
+        #expect(productRepository.productCallCount == 1)
+        #expect(viewModel.savedIngredientsTextSource == nil)
+        #expect(viewModel.result?.product.name == "Ağdan Gelen Ürün")
     }
 
     // MARK: - Adım B: otomatik OCR yönlendirmesi
