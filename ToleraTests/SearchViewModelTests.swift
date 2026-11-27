@@ -223,6 +223,104 @@ struct SearchViewModelTests {
         #expect(viewModel.result?.product.name == "Ağdan Gelen Ürün")
     }
 
+    // MARK: - "Yeniden fotoğrafla": hafızadan gelen sonucu kullanıcı düzeltebilsin
+
+    @Test("Yeniden fotoğraflama tamamlanınca hafızadaki metin yenisiyle değişir ve sonuç yeni metinden hesaplanır")
+    func manualRescanCompletionUpdatesMemoryAndDisplayedResult() async throws {
+        let saved = makeSavedRecord(barcode: "123", ingredientsText: "İçindekiler: su, şeker.")
+        let savedRepository = MockSavedIngredientsTextRepository(preloaded: [saved])
+        let viewModel = makeViewModel(
+            productRepository: MockProductRepository(),
+            savedIngredientsTextRepository: savedRepository
+        )
+        viewModel.barcode = "123"
+        viewModel.search()
+        try await waitUntil { viewModel.result != nil }
+        #expect(viewModel.result?.status == .safe)
+
+        let context = IngredientsScanContext(barcode: "123", productName: nil, brand: nil, imageURL: nil, categories: [])
+        let scanViewModel = viewModel.makeIngredientsScanViewModel(context: context, refreshesResultOnSuccess: true)
+        scanViewModel.extractedText = "İçindekiler: süt tozu, şeker."
+        scanViewModel.fullRecognizedText = "İçindekiler: süt tozu, şeker."
+        scanViewModel.hasIngredientsHeading = true
+
+        scanViewModel.checkText()
+
+        #expect(savedRepository.find(barcode: "123")?.ingredientsText == "İçindekiler: süt tozu, şeker.")
+        #expect(viewModel.result?.status == .unsafe)
+        #expect(viewModel.result?.matchedAllergens.contains(.milk) == true)
+    }
+
+    @Test("Yeniden fotoğraflamada yeni rawText'te 'Fındık içerebilir.' uyarısı varsa, refreshResultFromMemory sonrası sonuç caution olur ve matchedTraces fındık içerir")
+    func manualRescanWarningSentenceInNewRawTextProducesCaution() async throws {
+        let saved = makeSavedRecord(barcode: "123", ingredientsText: "İçindekiler: su, şeker.")
+        let savedRepository = MockSavedIngredientsTextRepository(preloaded: [saved])
+        let profileRepository = MockUserProfileRepository()
+        profileRepository.allergens = [.nuts]
+        let viewModel = makeViewModel(
+            productRepository: MockProductRepository(),
+            savedIngredientsTextRepository: savedRepository,
+            profileRepository: profileRepository
+        )
+        viewModel.barcode = "123"
+        viewModel.search()
+        try await waitUntil { viewModel.result != nil }
+
+        let context = IngredientsScanContext(barcode: "123", productName: nil, brand: nil, imageURL: nil, categories: [])
+        let scanViewModel = viewModel.makeIngredientsScanViewModel(context: context, refreshesResultOnSuccess: true)
+        scanViewModel.extractedText = "İçindekiler: şeker, kakao."
+        scanViewModel.fullRecognizedText = "İçindekiler: şeker, kakao. Besin değerleri: Enerji 500 kcal. Alerjen uyarısı: Fındık içerebilir."
+        scanViewModel.hasIngredientsHeading = true
+
+        scanViewModel.checkText()
+
+        #expect(viewModel.result?.status == .caution)
+        #expect(viewModel.result?.matchedTraces.contains(.nuts) == true)
+    }
+
+    @Test("Yeniden fotoğraflama ekranından vazgeçilirse hafızadaki metin değişmez")
+    func abandoningManualRescanLeavesSavedTextUnchanged() {
+        let saved = makeSavedRecord(barcode: "123", ingredientsText: "İçindekiler: su, şeker.")
+        let savedRepository = MockSavedIngredientsTextRepository(preloaded: [saved])
+        let viewModel = makeViewModel(
+            productRepository: MockProductRepository(),
+            savedIngredientsTextRepository: savedRepository
+        )
+
+        let context = IngredientsScanContext(barcode: "123", productName: nil, brand: nil, imageURL: nil, categories: [])
+        let scanViewModel = viewModel.makeIngredientsScanViewModel(context: context, refreshesResultOnSuccess: true)
+        scanViewModel.extractedText = "İçindekiler: süt tozu, şeker."
+        // Kullanıcı fotoğraf çekip metni okuttu ama "Kontrol et"e basmadan geri döndü:
+        // checkText() hiç çağrılmaz.
+
+        #expect(savedRepository.find(barcode: "123")?.ingredientsText == "İçindekiler: su, şeker.")
+        #expect(scanViewModel.result == nil)
+    }
+
+    @Test("Yeniden fotoğraflamada yeni metinde içindekiler başlığı yoksa sonuç uygun olmaz, eski metin uygun olsa bile")
+    func manualRescanWithMissingHeadingNeverShowsSafeEvenIfOldTextWasSafe() async throws {
+        let saved = makeSavedRecord(barcode: "123", ingredientsText: "İçindekiler: su, şeker.", headingFound: true)
+        let savedRepository = MockSavedIngredientsTextRepository(preloaded: [saved])
+        let viewModel = makeViewModel(
+            productRepository: MockProductRepository(),
+            savedIngredientsTextRepository: savedRepository
+        )
+        viewModel.barcode = "123"
+        viewModel.search()
+        try await waitUntil { viewModel.result != nil }
+        #expect(viewModel.result?.status == .safe)
+
+        let context = IngredientsScanContext(barcode: "123", productName: nil, brand: nil, imageURL: nil, categories: [])
+        let scanViewModel = viewModel.makeIngredientsScanViewModel(context: context, refreshesResultOnSuccess: true)
+        scanViewModel.extractedText = "Üretim yeri: İstanbul."
+        scanViewModel.fullRecognizedText = "Üretim yeri: İstanbul."
+        scanViewModel.hasIngredientsHeading = false
+
+        scanViewModel.checkText()
+
+        #expect(viewModel.result?.status != .safe)
+    }
+
     // MARK: - Adım B: otomatik OCR yönlendirmesi
 
     @Test("Ürün bulunamadığında (profil boş değilken) OCR ekranına otomatik yönlendirme tetiklenir")

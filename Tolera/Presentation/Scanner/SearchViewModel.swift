@@ -95,20 +95,7 @@ final class SearchViewModel {
         // varsa, OFF'a hiç gidilmez; sonuç doğrudan o metinden üretilir.
         if let saved = savedIngredientsTextRepository.find(barcode: barcode) {
             savedIngredientsTextSource = saved
-            // `saved.rawText` (varsa) de taranır: ilk taramada başlık/besin tablosu dışında
-            // yakalanan bir uyarı, hafızadan ikinci kez okunurken kaçırılmasın (güvenlik
-            // gerilemesi olurdu — aynı ürün ilk okutmada "dikkat", ikincisinde "uygun" çıkamaz).
-            let checkResult = checkIngredientsTextUseCase.execute(
-                rawText: saved.ingredientsText,
-                userAllergens: userAllergens,
-                customTerms: customTerms,
-                headingFound: saved.headingFound,
-                barcode: saved.barcode,
-                brand: saved.brand,
-                imageURL: saved.imageURL,
-                categories: saved.categories,
-                fullRawText: saved.rawText
-            )
+            let checkResult = computeResult(from: saved, userAllergens: userAllergens, customTerms: customTerms)
             result = checkResult
             isLoading = false
             // Hafıza yolu yönlendirmeye hiç girmez (Adım B'nin kapsamı sadece OFF yolu);
@@ -226,6 +213,43 @@ final class SearchViewModel {
         deferredHistoryLogAction = nil
     }
 
+    /// `saved.rawText` (varsa) de taranır: ilk taramada başlık/besin tablosu dışında
+    /// yakalanan bir uyarı, hafızadan ikinci kez okunurken kaçırılmasın (güvenlik
+    /// gerilemesi olurdu — aynı ürün ilk okutmada "dikkat", ikincisinde "uygun" çıkamaz).
+    private func computeResult(
+        from saved: SavedIngredientsText,
+        userAllergens: Set<Allergen>,
+        customTerms: [String]
+    ) -> ProductCheckResult {
+        checkIngredientsTextUseCase.execute(
+            rawText: saved.ingredientsText,
+            userAllergens: userAllergens,
+            customTerms: customTerms,
+            headingFound: saved.headingFound,
+            barcode: saved.barcode,
+            brand: saved.brand,
+            imageURL: saved.imageURL,
+            categories: saved.categories,
+            fullRawText: saved.rawText
+        )
+    }
+
+    /// "Yeniden fotoğrafla" ile hafızadaki metin güncellendiğinde çağrılır (bkz.
+    /// `makeIngredientsScanViewModel(refreshesResultOnSuccess:)`). `search()`'ün aksine
+    /// tarama geçmişine YENİDEN KAYIT ATMAZ: `IngredientsScanViewModel.checkText()` bu
+    /// taramanın kaydını zaten yapmıştır; burada ikinci bir kayıt oluşursa aynı tarama
+    /// için geçmişte iki satır görünürdü. Sadece ekrandaki `result`/`savedIngredientsTextSource`
+    /// (artık güncellenmiş metinden hesaplanarak) tazelenir.
+    private func refreshResultFromMemory() {
+        guard let saved = savedIngredientsTextRepository.find(barcode: barcode) else { return }
+        savedIngredientsTextSource = saved
+        result = computeResult(
+            from: saved,
+            userAllergens: profileRepository.loadAllergens(),
+            customTerms: profileRepository.loadCustomTerms()
+        )
+    }
+
     private func logToHistory(product: Product, result: ProductCheckResult, source: ScanSource, rawText: String? = nil) {
         guard !result.isProfileEmpty else { return }
         scanHistoryRepository.save(ScanHistoryEntry(
@@ -294,17 +318,31 @@ final class SearchViewModel {
         )
     }
 
-    /// `context` verilirse (otomatik yönlendirme ya da "Yeniden oku"), OCR ekranı barkodu
-    /// ve bilinen ürün bilgisini taşır — üstte ürün adını gösterebilsin, okunan metni aynı
-    /// barkodla hafızaya kaydedebilsin diye (bkz. Aşama 3, Adım C).
-    func makeIngredientsScanViewModel(context: IngredientsScanContext? = nil) -> IngredientsScanViewModel {
+    /// `context` verilirse (otomatik yönlendirme, "Yeniden oku" ya da "Yeniden fotoğrafla"),
+    /// OCR ekranı barkodu ve bilinen ürün bilgisini taşır — üstte ürün adını gösterebilsin,
+    /// okunan metni aynı barkodla hafızaya kaydedebilsin diye (bkz. Aşama 3, Adım C).
+    ///
+    /// `refreshesResultOnSuccess`: kullanıcı `SearchView`'de zaten hafızadan görüntülenen bir
+    /// sonucu "Yeniden fotoğrafla" ile düzeltmeye çalışıyorsa `true` verilir. Otomatik
+    /// yönlendirmenin kullandığı `pendingIngredientsScanContext`'ten TAMAMEN AYRI bir
+    /// mekanizmadır: hiçbir ortak durumu paylaşmaz, bu yüzden "bir aramada en fazla bir kez"
+    /// sınırını hiç etkilemez — kullanıcı "Yeniden fotoğrafla"yı istediği kadar açabilir.
+    func makeIngredientsScanViewModel(
+        context: IngredientsScanContext? = nil,
+        refreshesResultOnSuccess: Bool = false
+    ) -> IngredientsScanViewModel {
         IngredientsScanViewModel(
             textRecognitionService: textRecognitionService,
             profileRepository: profileRepository,
             savedIngredientsTextRepository: savedIngredientsTextRepository,
             scanHistoryRepository: scanHistoryRepository,
             context: context,
-            onSuccessfulCheck: { [weak self] in self?.ingredientsScanDidProduceResult() }
+            onSuccessfulCheck: { [weak self] in
+                self?.ingredientsScanDidProduceResult()
+                if refreshesResultOnSuccess {
+                    self?.refreshResultFromMemory()
+                }
+            }
         )
     }
 

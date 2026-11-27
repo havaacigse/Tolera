@@ -143,7 +143,7 @@ struct SearchView: View {
 
     private func savedSourceNotice(_ saved: SavedIngredientsText) -> some View {
         HStack {
-            Text("Kaynak: daha önce okuduğun ambalaj (\(saved.savedAt.formatted(date: .abbreviated, time: .omitted)))")
+            Text("Bu sonuç daha önce fotoğrafla okuduğun içeriğe göre.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
 
@@ -157,10 +157,11 @@ struct SearchView: View {
                         brand: saved.brand,
                         imageURL: saved.imageURL,
                         categories: saved.categories
-                    )
+                    ),
+                    refreshesResultOnSuccess: true
                 ))
             } label: {
-                Text("Yeniden oku")
+                Text("Yeniden fotoğrafla")
                     .font(.caption2.bold())
             }
         }
