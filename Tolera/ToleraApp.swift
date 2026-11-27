@@ -57,6 +57,10 @@ struct ToleraApp: App {
                     savedIngredientsTextRepository: savedIngredientsTextRepository,
                     scanHistoryRepository: scanHistoryRepository
                 ),
+                historyViewModel: HistoryViewModel(
+                    scanHistoryRepository: scanHistoryRepository,
+                    profileRepository: profileRepository
+                ),
                 profileViewModel: ProfileViewModel(repository: profileRepository)
             )
         }

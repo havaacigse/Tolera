@@ -11,10 +11,12 @@ import SwiftUI
 struct ContentView: View {
     enum Tab {
         case search
+        case history
         case profile
     }
 
     let searchViewModel: SearchViewModel
+    let historyViewModel: HistoryViewModel
     let profileViewModel: ProfileViewModel
     @State private var selectedTab: Tab = .search
 
@@ -25,6 +27,12 @@ struct ContentView: View {
                     Label("Ara", systemImage: "barcode.viewfinder")
                 }
                 .tag(Tab.search)
+
+            HistoryView(viewModel: historyViewModel)
+                .tabItem {
+                    Label("Geçmiş", systemImage: "clock")
+                }
+                .tag(Tab.history)
 
             ProfileView(viewModel: profileViewModel)
                 .tabItem {
@@ -54,6 +62,10 @@ struct ContentView: View {
             textRecognitionService: VisionTextRecognitionService(),
             savedIngredientsTextRepository: SavedIngredientsTextRepositoryImpl(modelContainer: modelContainer),
             scanHistoryRepository: ScanHistoryRepositoryImpl(modelContainer: modelContainer)
+        ),
+        historyViewModel: HistoryViewModel(
+            scanHistoryRepository: ScanHistoryRepositoryImpl(modelContainer: modelContainer),
+            profileRepository: UserProfileRepositoryImpl()
         ),
         profileViewModel: ProfileViewModel(repository: UserProfileRepositoryImpl())
     )

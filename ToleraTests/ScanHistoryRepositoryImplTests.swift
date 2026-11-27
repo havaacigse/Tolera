@@ -23,6 +23,7 @@ struct ScanHistoryRepositoryImplTests {
         productName: String = "Test Ürün",
         source: ScanSource = .off,
         status: CheckStatus = .safe,
+        rawText: String? = nil,
         scannedAt: Date = Date()
     ) -> ScanHistoryEntry {
         ScanHistoryEntry(
@@ -31,6 +32,7 @@ struct ScanHistoryRepositoryImplTests {
             brand: "Marka",
             imageURL: URL(string: "https://example.com/image.jpg"),
             ingredientsText: "su, şeker",
+            rawText: rawText,
             allergens: [.milk],
             traces: [],
             categories: ["yogurts"],
@@ -104,6 +106,28 @@ struct ScanHistoryRepositoryImplTests {
         repository.save(makeEntry(source: .ocrPhoto))
 
         #expect(repository.all().first?.source == .ocrPhoto)
+    }
+
+    /// Güvenlik gerilemesi testi: OCR kaynaklı bir kaydın `rawText`'i (başlık/besin
+    /// tablosu dışındaki uyarıların kaynağı) depodan okunurken bozulmamalı/kaybolmamalı.
+    /// Aynı `all()` çağrısında, bu alan eklenmeden önce kaydedilmiş satırları temsil eden
+    /// nil `rawText`'li bir kayıt da sorunsuz nil olarak dönmeli (lightweight migration).
+    @Test("rawText alanı .ocrPhoto kaydında aynen korunur, eski (nil) kayıtta nil kalır")
+    func rawTextRoundTripsForOcrEntryAndStaysNilForOlderEntry() {
+        let repository = makeRepository()
+        let withRawText = makeEntry(
+            productName: "Uyarılı Ürün",
+            source: .ocrPhoto,
+            rawText: "İçindekiler: şeker, kakao. Alerjen uyarısı: Fındık içerebilir."
+        )
+        let withoutRawText = makeEntry(productName: "Eski Kayıt", source: .ocrPhoto, rawText: nil)
+        repository.save(withRawText)
+        repository.save(withoutRawText)
+
+        let all = repository.all()
+
+        #expect(all.first(where: { $0.productName == "Uyarılı Ürün" })?.rawText == "İçindekiler: şeker, kakao. Alerjen uyarısı: Fındık içerebilir.")
+        #expect(all.first(where: { $0.productName == "Eski Kayıt" })?.rawText == nil)
     }
 
     // Regresyon testi: container'ı sadece yerel bir değişkende oluşturup repository'ye

@@ -95,4 +95,63 @@ struct RecheckScanHistoryEntryUseCaseTests {
         #expect(result.status == .caution)
         #expect(result.matchedTraces.contains(.nuts))
     }
+
+    // MARK: - Temkinli ilke: "safe" hiçbir zaman yanıltıcı bir varsayılan olmamalı
+
+    /// "Ürün bulunamadı" kaydı: `ingredientsText` nil, `snapshotStatus` tarama anında
+    /// `.unknown`. Dolu bir profille yeniden hesaplanırken, analiz edilecek hiçbir metin
+    /// olmadığından sonuç ASLA `.safe` olmamalı — "bilgi yok" ile "uygun" birbirine
+    /// karışmamalı.
+    @Test("'Ürün bulunamadı' kaydı (ingredientsText nil) dolu profille recheck edilince .safe dönmez")
+    func notFoundEntryWithFullProfileNeverRecomputesAsSafe() {
+        let useCase = RecheckScanHistoryEntryUseCase()
+        let entry = makeEntry(
+            source: .off,
+            ingredientsText: nil,
+            allergens: [],
+            headingFound: true
+        )
+
+        let result = useCase.execute(entry: entry, userAllergens: [.milk], customTerms: [])
+
+        #expect(result.status != .safe)
+    }
+
+    /// Kullanıcı profili boşken (hiç alerjen/özel terim seçilmemiş) hiçbir kayıt — eskiden
+    /// `.safe` olarak kaydedilmiş olsa bile — `.safe` olarak yeniden hesaplanmamalı; boş
+    /// profille üretilen "safe" anlamsız/yanıltıcı olurdu (bkz. `CheckProductUseCase`'teki
+    /// `isProfileEmpty` kuralı).
+    @Test("Profil boşken, eskiden .safe olan bir kayıt da recheck edilince .safe dönmez")
+    func emptyProfileNeverRecomputesPreviouslySafeEntryAsSafe() {
+        let useCase = RecheckScanHistoryEntryUseCase()
+        let entry = makeEntry(
+            source: .off,
+            ingredientsText: "su, şeker",
+            allergens: [.milk],
+            headingFound: true
+        )
+
+        let result = useCase.execute(entry: entry, userAllergens: [], customTerms: [])
+
+        #expect(result.status != .safe)
+    }
+
+    /// "Neden bu sonuç?" ekranının boş gelmemesi için: süt içeren bir kayıt süt alerjisi
+    /// profiliyle eşleştiğinde, `allergenReasons` süt için anlamlı (boş olmayan) bir
+    /// gerekçe metni taşımalı.
+    @Test("Süt içeren kayıt süt alerjisi profiliyle recheck edilince allergenReasons süt için boş olmayan bir gerekçe içerir")
+    func milkEntryMatchedByMilkAllergyProfileHasNonEmptyReason() {
+        let useCase = RecheckScanHistoryEntryUseCase()
+        let entry = makeEntry(
+            source: .off,
+            ingredientsText: "su, şeker",
+            allergens: [.milk],
+            headingFound: true
+        )
+
+        let result = useCase.execute(entry: entry, userAllergens: [.milk], customTerms: [])
+
+        #expect(result.matchedAllergens.contains(.milk))
+        #expect(!(result.allergenReasons[.milk] ?? "").isEmpty)
+    }
 }
