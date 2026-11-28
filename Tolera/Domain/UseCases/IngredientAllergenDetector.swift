@@ -225,6 +225,9 @@ struct IngredientAllergenDetector {
     /// bunlardan yanlışlıkla etkilenmesin:
     /// - Bitkisel sütler ("badem sütü" → "badem"): süt alerjeni değildir.
     /// - İstisna kelimeler ("eggplant", "kekik" vb.): başka bir anahtar kelimenin öneki.
+    /// - "laktozsuz": SADECE bu kelime silinir ("laktoz" anahtar kelimesinin içinde önek
+    ///   olarak yanlışlıkla eşleşmesin diye); geri kalan metin (ör. "laktozsuz süt"teki
+    ///   "süt") normal şekilde içerik olarak yakalanmaya devam eder.
     /// - "glutensiz yulaf/buğday": çapraz bulaşma riski olduğu için ayrıca işaretlenip
     ///   (forcedTrace, kendi ifadesi "neden" olarak saklanır) metinden silinir ki aşağıda
     ///   tekrar "içerik" olarak yakalanmasın.
@@ -238,6 +241,12 @@ struct IngredientAllergenDetector {
 
         for exception in AllergenKeywords.exceptions {
             normalized = normalized.replacingOccurrences(of: exception, with: " ")
+        }
+
+        // "Laktozsuz" kelimesinin KENDİSİ silinir; metnin geri kalanı (ör. "laktozsuz
+        // süt"teki "süt") aşağıdaki normal anahtar kelime taramasından değişmeden geçer.
+        for word in AllergenKeywords.standaloneFreeFromClaimWords {
+            normalized = normalized.replacingOccurrences(of: word, with: " ")
         }
 
         var forcedTrace: Set<Allergen> = []

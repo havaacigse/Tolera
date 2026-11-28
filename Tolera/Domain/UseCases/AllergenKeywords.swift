@@ -135,6 +135,15 @@ enum AllergenKeywords {
     /// başka bir gluten kaynağı bu temizlikten sonra normal şekilde içerik sayılmaya devam eder.
     static let glutenNegationPhrases = ["gluten içermez", "gluten içermiyor"]
 
+    /// "Laktozsuz": bu kelimenin KENDİSİ süt alarmı vermesin diye ("laktoz" anahtar
+    /// kelimesi kelime-başı eşleşmesiyle "laktozsuz" içinde önek olarak yanlışlıkla
+    /// eşleşiyordu) `exceptions` ile aynı desende metinden TAMAMEN silinir. Metnin GERİ
+    /// KALANI (ör. "laktozsuz süt"teki "süt") normal şekilde taranmaya devam eder. SADECE
+    /// bu kelime için — başka hiçbir kelimeye olumsuzlama kuralı eklenmedi. ("Glutensiz"
+    /// bilerek bu listede DEĞİL: "glutensiz yulaf/buğday" için ayrı, daha temkinli
+    /// `glutenFreeCrossContaminationPhrases` kuralı var — bkz. yukarısı.)
+    static let standaloneFreeFromClaimWords = ["laktozsuz"]
+
     /// "Ayçiçek/ayçiçeği" kaynaklı lesitin/E322: soya DEĞİLDİR. Kaynaksız lesitin/E322
     /// kuralına (`unspecifiedSourceLecithinKeywords`) hiç girmesinler diye `exceptions` ile
     /// aynı desende metinden TAMAMEN (parantezli ifadenin tamamı) silinir.

@@ -668,4 +668,20 @@ struct IngredientAllergenDetectorTests {
         #expect(result.contains.contains(.soybeans))
         #expect(!result.mayContain.contains(.soybeans))
     }
+
+    // MARK: - "Laktozsuz" kelimesinin KENDİSİ alarm vermesin
+
+    @Test("\"laktozsuz süt\" → süt içerir kalmalı")
+    func lactoseFreeMilkStillContainsMilk() {
+        let result = detector.detect(in: "laktozsuz süt")
+        #expect(result.contains.contains(.milk))
+        #expect(!result.mayContain.contains(.milk))
+    }
+
+    @Test("\"laktozsuz, peynir altı suyu tozu\" → süt içerir kalmalı")
+    func lactoseFreeWheyPowderStillContainsMilk() {
+        let result = detector.detect(in: "laktozsuz, peynir altı suyu tozu")
+        #expect(result.contains.contains(.milk))
+        #expect(!result.mayContain.contains(.milk))
+    }
 }
