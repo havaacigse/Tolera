@@ -40,6 +40,15 @@ struct ProfileView: View {
                 .padding()
             }
             .navigationTitle("Profil")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
+                }
+            }
         }
         .alert("Yeni hassasiyet", isPresented: $isAddingCustomTerm) {
             TextField("Örn. çilek", text: $newCustomTerm)
