@@ -6,7 +6,6 @@ struct ProfileView: View {
     @State private var isEditingName = false
     @State private var isAddingCustomTerm = false
     @State private var newCustomTerm = ""
-    @State private var isConfirmingDeleteAllData = false
     let onAllDataDeleted: () -> Void
 
     init(viewModel: ProfileViewModel, onAllDataDeleted: @escaping () -> Void) {
@@ -34,8 +33,6 @@ struct ProfileView: View {
                     Text("Bilgilerin sadece bu cihazda saklanır.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-
-                    dataSection
                 }
                 .padding()
             }
@@ -43,7 +40,7 @@ struct ProfileView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {
-                        SettingsView()
+                        SettingsView(viewModel: viewModel, onAllDataDeleted: onAllDataDeleted)
                     } label: {
                         Image(systemName: "gearshape")
                     }
@@ -60,31 +57,8 @@ struct ProfileView: View {
                 newCustomTerm = ""
             }
         }
-        .confirmationDialog(
-            "Alerji profilin, okuttuğun ürünlerin bilgileri ve tarama geçmişin bu cihazdan kalıcı olarak silinir. Bu işlem geri alınamaz.",
-            isPresented: $isConfirmingDeleteAllData,
-            titleVisibility: .visible
-        ) {
-            Button("Tüm verilerimi sil", role: .destructive) {
-                viewModel.deleteAllData()
-                onAllDataDeleted()
-            }
-            Button("Vazgeç", role: .cancel) {}
-        }
         .onAppear {
             viewModel.refresh()
-        }
-    }
-
-    private var dataSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Verilerim")
-                .font(.headline)
-
-            Button("Tüm verilerimi sil", role: .destructive) {
-                isConfirmingDeleteAllData = true
-            }
-            .foregroundStyle(.red)
         }
     }
 

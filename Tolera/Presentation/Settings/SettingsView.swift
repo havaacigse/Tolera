@@ -1,7 +1,11 @@
+import SwiftData
 import SwiftUI
 
-/// "Ayarlar ve hakkında" ekranı: sorumluluk reddi, veri kaynağı ve sonuçların nasıl
-/// belirlendiğine dair bilgilendirme. Profil ekranındaki dişli simgesinden açılır.
+/// "Ayarlar ve hakkında" ekranı: sorumluluk reddi, veri kaynağı, sonuçların nasıl
+/// belirlendiğine dair bilgilendirme ve "Tüm verilerimi sil". Profil ekranındaki dişli
+/// simgesinden açılır; silme mantığı (`viewModel.deleteAllData()`, `onAllDataDeleted()`)
+/// aynen `ProfileView`'dan taşındı — bkz. `ProfileViewModel.deleteAllData`,
+/// `DeleteAllUserDataUseCase`, `RootViewModel.allDataDeleted`.
 struct SettingsView: View {
     // Sabit (adaptif olmayan) bir marka rengi — başlıklarda ve linkte kasıtlı olarak hep
     // aynı tonda kalır. Kart/arka plan rengi İSE buraya hiç sabitlenmiyor: `.listStyle(
@@ -13,6 +17,11 @@ struct SettingsView: View {
     // dönen, adaptif bir renk) kullandığından karanlık modda açık-gri-üzerine-beyaz gibi
     // okunaksız bir kombinasyon oluşuyordu.
     private let accentColor = Color(red: 0.184, green: 0.478, blue: 0.341) // #2F7A57
+
+    let viewModel: ProfileViewModel
+    let onAllDataDeleted: () -> Void
+
+    @State private var isConfirmingDeleteAllData = false
 
     var body: some View {
         List {
@@ -42,9 +51,30 @@ struct SettingsView: View {
                 Text("Sonuçlar nasıl belirleniyor")
                     .foregroundStyle(accentColor)
             }
+
+            Section {
+                Button("Tüm verilerimi sil", role: .destructive) {
+                    isConfirmingDeleteAllData = true
+                }
+                .foregroundStyle(.red)
+            } header: {
+                Text("Verilerim")
+                    .foregroundStyle(accentColor)
+            }
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Ayarlar ve Hakkında")
+        .confirmationDialog(
+            "Alerji profilin, okuttuğun ürünlerin bilgileri ve tarama geçmişin bu cihazdan kalıcı olarak silinir. Bu işlem geri alınamaz.",
+            isPresented: $isConfirmingDeleteAllData,
+            titleVisibility: .visible
+        ) {
+            Button("Tüm verilerimi sil", role: .destructive) {
+                viewModel.deleteAllData()
+                onAllDataDeleted()
+            }
+            Button("Vazgeç", role: .cancel) {}
+        }
     }
 
     /// Uzun gövde metinleri için ortak stil. `.fixedSize(horizontal: false, vertical: true)`
@@ -71,7 +101,21 @@ struct SettingsView: View {
 }
 
 #Preview {
+    let modelContainer = try! ModelContainer(
+        for: SavedIngredientsTextModel.self, ScanHistoryEntryModel.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
     NavigationStack {
-        SettingsView()
+        SettingsView(
+            viewModel: ProfileViewModel(
+                repository: UserProfileRepositoryImpl(),
+                deleteAllUserDataUseCase: DeleteAllUserDataUseCase(
+                    savedIngredientsTextRepository: SavedIngredientsTextRepositoryImpl(modelContainer: modelContainer),
+                    scanHistoryRepository: ScanHistoryRepositoryImpl(modelContainer: modelContainer),
+                    userProfileRepository: UserProfileRepositoryImpl()
+                )
+            ),
+            onAllDataDeleted: {}
+        )
     }
 }
