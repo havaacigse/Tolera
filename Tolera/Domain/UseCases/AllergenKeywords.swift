@@ -47,7 +47,7 @@ enum AllergenKeywords {
             "gluten", "galeta", "kuskus", "spelt", "wheat", "barley", "rye", "oat",
             // Bileşik yiyecekler: un/tahıl bazlı oldukları için gluten kaynağı sayılır.
             "makarna", "şehriye", "erişte", "yufka", "ekmek", "bisküvi", "kraker", "simit", "kek", "kadayıf",
-            "semolina"
+            "semolina", "ruşeym"
         ],
         .milk: [
             "süt", "peynir", "tereyağ", "krema", "kaymak", "kaymağ", "yoğurt", "yoğurd", "laktoz", "kazein", "kazeinat", "peynir altı suyu", "whey", "milk",
@@ -72,14 +72,15 @@ enum AllergenKeywords {
             "hazelnut", "almond", "walnut", "cashew", "pistachio", "pecan", "macadamia",
             // Yaygın etiket ifadeleri: hepsi sert kabuklu yemiş kategorisine girer.
             "sert kabuklu meyve", "sert kabuklu yemiş", "kabuklu yemiş",
-            "brazil nut"
+            "brazil nut", "pralin", "marzipan"
         ],
         .soybeans: ["soya", "soy"],
         .celery: ["kereviz", "celery"],
         .mustard: ["hardal", "mustard"],
         // "simit" (susamlı ekmek halkası) hem gluten hem susam kaynağıdır; gluten listesinden
-        // kaldırılmadı, buraya da eklendi.
-        .sesame: ["susam", "tahin", "sesame", "simit"],
+        // kaldırılmadı, buraya da eklendi. "humus" (nohut ezmesi) geleneksel olarak tahin
+        // (susam ezmesi) içerir.
+        .sesame: ["susam", "tahin", "sesame", "simit", "humus"],
         .sulphites: [
             "sülfit", "sülfür dioksit", "metabisülfit", "e220", "e221", "e222", "e223", "e224", "e226", "e227", "e228", "sulphite", "sulfite",
             "kükürt dioksit", "sulphur dioxide", "sulfur dioxide"
@@ -133,6 +134,22 @@ enum AllergenKeywords {
     /// "gluten içermez/içermiyor" sadece kendi ifadesini etkiler (silinir); metindeki
     /// başka bir gluten kaynağı bu temizlikten sonra normal şekilde içerik sayılmaya devam eder.
     static let glutenNegationPhrases = ["gluten içermez", "gluten içermiyor"]
+
+    /// "Ayçiçek/ayçiçeği" kaynaklı lesitin/E322: soya DEĞİLDİR. Kaynaksız lesitin/E322
+    /// kuralına (`unspecifiedSourceLecithinKeywords`) hiç girmesinler diye `exceptions` ile
+    /// aynı desende metinden TAMAMEN (parantezli ifadenin tamamı) silinir.
+    static let sunflowerSourcedLecithinPhrases = [
+        "ayçiçek lesitini", "ayçiçeği lesitini",
+        "lesitin (ayçiçeği)", "lesitin (ayçiçek)", "e322 (ayçiçek)"
+    ]
+
+    /// Kaynağı belirtilmeyen lesitin/E322 (katkı maddesi kodu, büyük/küçük harf ve boşluklu
+    /// hali dahil): soya kaynaklı OLABİLİR ama kesin değildir (ayçiçeği, yumurta sarısı da
+    /// olabilir) — bu yüzden her zaman eser miktar (mayContain) sayılır, asla içerik
+    /// (contains) değil. "Soya lesitini"/"Soya lesitini (E322)" bu listeye dahil DEĞİLDİR:
+    /// zaten mevcut "soya" anahtar kelimesiyle içerik olarak yakalanıyor (bkz.
+    /// `keywordsByAllergen[.soybeans]`).
+    static let unspecifiedSourceLecithinKeywords = ["lesitin", "e322", "e 322"]
 
     /// Kısa metinlerde dil tespiti için: bunlardan en az biri geçmeli, yoksa metin
     /// Türkçe/İngilizce dışında bir dil olarak kabul edilir (bkz. `isSupportedLanguage`).

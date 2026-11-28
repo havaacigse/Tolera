@@ -24,7 +24,7 @@ struct IngredientAllergenDetectorTests {
         #expect(result.contains == [.milk])
         #expect(result.mayContain.isEmpty)
     }
-
+    
     @Test("\"fındığı\" çekimli hali sert kabuklu yemiş olarak yakalanır")
     func findigiInflectedFormDetectsNuts() {
         let result = detector.detect(in: "fındığı ezilmiş")
@@ -584,5 +584,88 @@ struct IngredientAllergenDetectorTests {
     @Test("\"lor\" kelime başı eşleşmesi \"klorür\" kelimesinin içinde tetiklenmez")
     func lorDoesNotFalsePositiveInsideChloride() {
         #expect(detector.detect(in: "kalsiyum klorür").contains.isEmpty)
+    }
+
+    // MARK: - Eksik türev terimleri
+
+    @Test("\"tahin helvası\" susam alerjeni olarak yakalanır")
+    func tahiniHalvaDetectsSesame() {
+        let result = detector.detect(in: "tahin helvası")
+        #expect(result.contains == [.sesame])
+        #expect(result.mayContain.isEmpty)
+    }
+
+    @Test("\"humus\" susam alerjeni olarak yakalanır")
+    func humusDetectsSesame() {
+        let result = detector.detect(in: "humus")
+        #expect(result.contains == [.sesame])
+        #expect(result.mayContain.isEmpty)
+    }
+
+    @Test("\"ruşeym\" tek başına (buğday/un gibi başka bir gluten kelimesi olmadan) gluten alerjeni olarak yakalanır")
+    func wheatGermAloneDetectsGluten() {
+        let result = detector.detect(in: "ruşeym, şeker")
+        #expect(result.contains == [.gluten])
+        #expect(result.mayContain.isEmpty)
+    }
+
+    @Test("\"pralin\" ve \"marzipan\" sert kabuklu yemiş alerjeni olarak yakalanır")
+    func pralineAndMarzipanDetectNuts() {
+        #expect(detector.detect(in: "pralin").contains == [.nuts])
+        #expect(detector.detect(in: "marzipan").contains == [.nuts])
+    }
+
+    // MARK: - Kaynağı belirsiz "lesitin": soya için eser miktar, asla içerik
+
+    @Test("Kaynaksız \"lesitin\" soya için eser miktar (mayContain) sayılır, içerik (contains) sayılmaz")
+    func unspecifiedLecithinIsSoyTraceNotContains() {
+        let result = detector.detect(in: "lesitin, şeker")
+        #expect(!result.contains.contains(.soybeans))
+        #expect(result.mayContain.contains(.soybeans))
+    }
+
+    @Test("\"ayçiçek lesitini\"/\"ayçiçeği lesitini\" soya alerjeni üretmez")
+    func sunflowerLecithinDoesNotProduceSoy() {
+        let first = detector.detect(in: "ayçiçek lesitini")
+        #expect(!first.contains.contains(.soybeans))
+        #expect(!first.mayContain.contains(.soybeans))
+
+        let second = detector.detect(in: "ayçiçeği lesitini")
+        #expect(!second.contains.contains(.soybeans))
+        #expect(!second.mayContain.contains(.soybeans))
+    }
+
+    @Test("\"soya lesitini\" hâlâ soya alerjeni için içerik (contains) sayılır")
+    func soyLecithinStillContainsSoy() {
+        let result = detector.detect(in: "soya lesitini")
+        #expect(result.contains.contains(.soybeans))
+        #expect(!result.mayContain.contains(.soybeans))
+    }
+
+    @Test("\"E322\" ve \"E 322\" kaynaksız lesitin gibi işlenir: soya için eser miktar (mayContain), içerik (contains) değil")
+    func e322CodeIsTreatedAsUnspecifiedLecithin() {
+        let withoutSpace = detector.detect(in: "E322, şeker")
+        #expect(!withoutSpace.contains.contains(.soybeans))
+        #expect(withoutSpace.mayContain.contains(.soybeans))
+
+        let withSpace = detector.detect(in: "E 322, şeker")
+        #expect(!withSpace.contains.contains(.soybeans))
+        #expect(withSpace.mayContain.contains(.soybeans))
+    }
+
+    @Test("\"lesitin (ayçiçeği)\", \"lesitin (ayçiçek)\" ve \"E322 (ayçiçek)\" ayçiçeği kaynaklı sayılır, soya üretmez")
+    func parenthesizedSunflowerSourceDoesNotProduceSoy() {
+        for text in ["lesitin (ayçiçeği)", "lesitin (ayçiçek)", "E322 (ayçiçek)"] {
+            let result = detector.detect(in: text)
+            #expect(!result.contains.contains(.soybeans), "\(text) içerik üretmemeli")
+            #expect(!result.mayContain.contains(.soybeans), "\(text) eser miktar da üretmemeli")
+        }
+    }
+
+    @Test("\"Soya lesitini (E322)\" hâlâ soya alerjeni için içerik (contains) sayılır")
+    func soyLecithinWithE322CodeStillContainsSoy() {
+        let result = detector.detect(in: "Soya lesitini (E322)")
+        #expect(result.contains.contains(.soybeans))
+        #expect(!result.mayContain.contains(.soybeans))
     }
 }

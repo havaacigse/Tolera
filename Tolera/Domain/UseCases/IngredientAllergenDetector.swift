@@ -254,6 +254,28 @@ struct IngredientAllergenDetector {
             normalized = normalized.replacingOccurrences(of: phrase, with: " ")
         }
 
+        // "Ayçiçek/ayçiçeği" kaynaklı lesitin/E322 soya değildir; aşağıdaki kaynaksız
+        // lesitin/E322 kuralına hiç girmesin diye önce tamamen silinir.
+        for phrase in AllergenKeywords.sunflowerSourcedLecithinPhrases {
+            normalized = normalized.replacingOccurrences(of: phrase, with: " ")
+        }
+
+        // Kalan (kaynağı belirtilmeyen) lesitin/E322: soya için her zaman eser miktar
+        // (mayContain) — "soya lesitini"/"soya lesitini (E322)" zaten "soya" anahtar
+        // kelimesiyle içerik (contains) olarak yakalanıyor; buradaki eser miktar eklemesi
+        // de olsa `combine()`'daki "mayContain.subtract(contains)" kuralı içerik sonucunu
+        // korur (CLAUDE.md: contains > mayContain). Eşleşen ifade metinden silinir ki eser
+        // miktar cümlesi belirsizlik kontrolünde (`hasUnaccountedWord`) "bilinmeyen kelime"
+        // sayılmasın. İlk eşleşen ifadenin nedeni korunur (`where ... == nil`).
+        for keyword in AllergenKeywords.unspecifiedSourceLecithinKeywords
+        where TurkishWordMatcher.matchesWordStart(keyword: keyword, in: normalized) {
+            forcedTrace.insert(.soybeans)
+            if forcedTraceReasons[.soybeans] == nil {
+                forcedTraceReasons[.soybeans] = keyword
+            }
+            normalized = normalized.replacingOccurrences(of: keyword, with: " ")
+        }
+
         return (normalized, forcedTrace, forcedTraceReasons)
     }
 
